@@ -1,0 +1,11 @@
+def ba():
+    print(1)
+    return
+
+
+def main():
+    ba()
+
+
+if __name__ == "__main__":
+    main()
