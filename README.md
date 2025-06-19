@@ -7,7 +7,7 @@ poetry를 우선 설치
 project clone 후
 
 ``` shell
-poetry install --no-root
+poetry install --no-root --with lint
 ```
 
 ## Gitflow 적용 방법
