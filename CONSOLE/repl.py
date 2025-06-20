@@ -1,7 +1,8 @@
 from typing import List
 
-from PrologParser import Term, parse_file, parse_string
-from PrologSolver import solve
+from PARSER.ast import Term
+from PARSER.parser import parse_file, parse_string
+from SOLVER.solver import solve
 
 
 class Command:

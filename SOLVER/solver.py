@@ -1,6 +1,6 @@
 from typing import Dict, List, Tuple
 
-from PrologParser import Struct, Term, Variable
+from PARSER.ast import Struct, Term, Variable
 
 
 def get_variables(terms: List[Term]) -> List[str]:
