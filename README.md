@@ -8,6 +8,7 @@ project clone 후
 
 ``` shell
 poetry install --no-root --with lint
+poetry config virtualenvs.in-project true
 ```
 
 ## Gitflow 적용 방법
