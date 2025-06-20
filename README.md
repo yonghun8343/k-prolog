@@ -7,6 +7,7 @@ poetry를 우선 설치
 project clone 후
 
 ``` shell
+poetry env use python
 poetry install --no-root --with lint
 poetry config virtualenvs.in-project true
 ```
