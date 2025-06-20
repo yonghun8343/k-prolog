@@ -1,2 +1,1 @@
-hello(h).
-hello(m).
+green(apple).

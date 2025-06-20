@@ -11,12 +11,13 @@ class Command:
 
 class Load(Command):
     def __init__(self, path: str):
+        if "." not in path:
+            path += ".txt" #TODO hardcoded right now
         self.path = path
 
 
-class Append(Command):
-    def __init__(self, path: str):
-        self.path = path
+class Make(Command):
+    pass
 
 
 class Query(Command):
@@ -24,22 +25,23 @@ class Query(Command):
         self.query = query
 
 
-class Quit(Command):
+class Halt(Command):
     pass
 
 
 def parse_command(command: str) -> Command:
-    if command.startswith(":l "):
-        return Load(command[3:])
-    elif command.startswith(":a "):
-        return Append(command[3:])
-    elif command.startswith(":q"):
-        return Quit()
+    if command.startswith("[") and command.endswith("]."):
+        return Load(command[1:-2]) # range is hard coded right now
+    elif command == "make.":
+        return Make()
+    elif command.startswith("halt."):
+        return Halt()
     else:
         return Query(command)
 
 
 def execute(program: List[List[Term]]) -> None:
+    current_file = None
     while True:
         try:
             line = input("?- ")
@@ -49,16 +51,21 @@ def execute(program: List[List[Term]]) -> None:
         if isinstance(cmd, Load):
             print(f"loaded from {cmd.path}")
             try:
+                current_file = cmd.path
                 program = parse_file(cmd.path)
             except Exception as e:
                 print(e)
-        elif isinstance(cmd, Append):
-            try:
-                more = parse_file(cmd.path)
-                program = more + program
-            except Exception as e:
-                print(e)
-        elif isinstance(cmd, Quit):
+        elif isinstance(cmd, Make):
+                if current_file:
+                    try:
+                        program = parse_file(current_file)
+                        print(f"reloaded from {current_file}")
+                    except Exception as e:
+                        print(e)
+                else:
+                    print("No file to reload")
+            
+        elif isinstance(cmd, Halt):
             break
         elif isinstance(cmd, Query):
             try:

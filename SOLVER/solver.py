@@ -99,7 +99,7 @@ def match_predicate(
 
 
 def combine_solution(
-    triples: List[Tuple[bool, List[Dict[str, Term]], int]],
+    triples: List[Tuple[bool, List[Dict[str, Term]], int]], #each triple: solution success, all possible variable bindings found, updated sequence counter
 ) -> Tuple[bool, List[Dict[str, Term]], int]:
     if not triples:
         return False, [], -1
@@ -130,18 +130,18 @@ def init_rule(terms: List[Term], seq: int) -> Tuple[List[Term], int]:
 
 
 def get_replacement(
-    vars: List[str], seq: int, replacement: Dict[str, Term]
+    vars: List[str], seq: int, replacement: Dict[str, Term] #maps original variable names to new temporary ones to avoid conflicts
 ) -> Tuple[Dict[str, Term], int]:
     if not vars:
         return replacement, seq
-    x, *xs = vars
+    x, *xs = vars # like H | T
     temp = Variable(f"TEMP{seq}")
     repl2 = replacement.copy()
     repl2[x] = temp
     return get_replacement(xs, seq + 1, repl2)
 
 
-def solve_with_unification(
+def solve_with_unification( # recursively solves down to the non-goal level
     program: List[List[Term]], goals: List[Term], old_unif: Dict[str, Term], seq: int
 ) -> Tuple[bool, List[Dict[str, Term]], int]:
     if not goals:
