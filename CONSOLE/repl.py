@@ -80,11 +80,3 @@ def print_result(result: bool, unifications: List[dict]) -> None:
             print(f"{key} = {value}", end=" ")
             if input() == ";":
                 continue
-
-
-def main() -> None:
-    execute([])
-
-
-if __name__ == "__main__":
-    main()
