@@ -1,4 +1,4 @@
-import re
+import re, itertools
 from typing import List
 from PARSER.ast import Term, Variable, Struct
 
@@ -31,8 +31,13 @@ def parse_struct(s: str) -> Term:
     else:
         if not s:
             raise ValueError("Empty term")
-        if s[0].isupper() or s[0] == "_":
-            return Variable(s)
+        if "is" in s:
+            name = "is"
+            params = s.split("is")
+            return Struct(name, 2, params)
+        elif s[0].isupper() or s[0] == "_":
+            return Variable(s) #TODO need variable checking
+        print("reached here")
         return Struct(s, 0, [])
 
 
@@ -41,6 +46,13 @@ def parse_term(s: str) -> Term:
     if s and (s[0].isupper() or s[0] == "_"):
         return Variable(s)
     return parse_struct(s)
+
+def flatten_semicolons(head: Term, tail_str: str) -> List[List[Term]]:
+    predicates = [] 
+    tails = [parse_struct(part.strip()) for part in tail_str.strip().split(';')]
+    for tail in tails:
+        predicates.append([head] + [tail])
+    return predicates
 
 
 def parse_line(line: str) -> List[Term]:
@@ -52,19 +64,33 @@ def parse_line(line: str) -> List[Term]:
     body = stripped[:-1]
     if ":-" in body:
         head_str, tail_str = body.split(":-", 1)
+        
         head = parse_struct(head_str.strip())
-        # split_args 로 최상위 쉼표만 분리
-        parts = split_args(tail_str)
-        tails = [parse_struct(part.strip()) for part in parts]
-        return [head] + tails
+
+        if ';' in tail_str:
+            return flatten_semicolons(head, tail_str)
+        else:
+            # split_args 로 최상위 쉼표만 분리
+            parts = split_args(tail_str)
+            tails = [parse_struct(part.strip()) for part in parts]
+            return [head] + tails
     else:
         return [parse_struct(body)]
 
 
 def parse_string(s: str) -> List[List[Term]]:
-    return [parse_line(l) for l in s.splitlines()]
+    parsed = []
+    for l in s.splitlines():
+        parsed_line = parse_line(l)
+        if parsed_line and isinstance(parsed_line, list) and isinstance(parsed_line[0], list): # check nested:
+            for p in parsed_line:
+                parsed.append(p)
+        else:
+            parsed.append(parsed_line)
+    return parsed
 
 
 def parse_file(path: str) -> List[List[Term]]:
     with open(path, "r") as f:
         return parse_string(f.read())
+

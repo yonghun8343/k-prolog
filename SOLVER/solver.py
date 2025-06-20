@@ -1,6 +1,18 @@
 from typing import Dict, List, Tuple
 from PARSER.ast import Struct, Term, Variable
 
+def handle_is(goal: Struct, rest_goals: List[Term], old_unif: Dict[str, Term], seq: int, program) -> Tuple[bool, List[Dict[str, Term]], int]:
+    if len(goal.params) != 2:
+        return False, [], seq
+    
+    left, right = goal.params
+
+    success, new_unif = match_params([left], [right], old_unif)
+
+    if success:
+        return solve_with_unification(program, rest_goals, new_unif, seq)
+    else:
+        return False, [], seq
 
 def get_variables(terms: List[Term]) -> List[str]:
     result = []
@@ -58,9 +70,11 @@ def match_structs(
 def match_params(
     xs: List[Term], ys: List[Term], old_unif: Dict[str, Term]
 ) -> Tuple[bool, Dict[str, Term]]:
+    print("called")
     if not xs and not ys:
         return True, old_unif
     if ys and isinstance(ys[0], Variable):
+        print("ys: ", ys)
         y = ys[0].name
         sub = {y: xs[0]}
         new_xs = substitute(sub, xs[1:])
@@ -69,6 +83,7 @@ def match_params(
         new_unif[y] = xs[0]
         return match_params(new_xs, new_ys, new_unif)
     if xs and isinstance(xs[0], Variable):
+        print("xs: ", xs)
         x = xs[0].name
         sub = {x: ys[0]}
         new_xs = substitute(sub, xs[1:])
@@ -76,6 +91,7 @@ def match_params(
         new_unif = substitute_unification(sub, old_unif)
         new_unif[x] = ys[0]
         return match_params(new_xs, new_ys, new_unif)
+    print("both ", ys, " ", xs)
     ok, unif = match_structs(xs[0], ys[0], old_unif)
     if ok:
         rest_xs = substitute(unif, xs[1:])
@@ -147,6 +163,10 @@ def solve_with_unification( # recursively solves down to the non-goal level
     if not goals:
         return True, [old_unif], seq
     x, *rest = goals
+
+    if isinstance(x, Struct) and x.name == "is":
+        return handle_is(x, rest, old_unif, seq, program)
+
     clauses = [c for c in program if is_relevant(x, c)]
     ps, new_seq = init_rules(clauses, seq)
     triples = []
@@ -162,5 +182,6 @@ def solve_with_unification( # recursively solves down to the non-goal level
 def solve(
     program: List[List[Term]], goals: List[Term]
 ) -> Tuple[bool, List[Dict[str, Term]]]:
+    print("program: ", program)
     result, unifs, _ = solve_with_unification(program, goals, {}, 0)
     return result, [extract_variable(get_variables(goals), u) for u in unifs]

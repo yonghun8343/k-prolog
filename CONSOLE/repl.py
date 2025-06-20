@@ -57,11 +57,12 @@ def execute(program: List[List[Term]]) -> None:
                 print(e)
         elif isinstance(cmd, Make):
                 if current_file:
-                    try:
-                        program = parse_file(current_file)
-                        print(f"reloaded from {current_file}")
-                    except Exception as e:
-                        print(e)
+                    # try:
+                    program = parse_file(current_file)
+                    print(f"reloaded from {current_file}")
+                    # except Exception as e:
+                        
+                        # print(e)
                 else:
                     print("No file to reload")
             
