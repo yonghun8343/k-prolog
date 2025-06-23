@@ -1,5 +1,8 @@
-color(red).
-color(blue).
-item(X) :- color(X); shape(X).
+sum(5).
+sum(3).
+sum(X + Y).
 
-return(X, Y) :- Y is X.
+language(prolog).
+language(c).
+lecture(prolog).
+interesting(X) :- lecture(X) language(X).
