@@ -20,35 +20,41 @@ def split_args(s: str) -> List[str]:
         parts.append(buf)
     return parts
 
-#TODO consider making operators parser a class
-def parse_primary(tokens: List[str], pos:int, operators) -> Tuple[Term, int]:
+
+def parse_primary(tokens: List[str], pos: int, operators) -> Tuple[Term, int]:
     if pos >= len(tokens):
         raise ValueError("Unexpected end of expression")
-    
+
     token = tokens[pos]
 
-    if token == '(':
+    if token == "(":
         expr, pos = parse_precedence(tokens, pos + 1, 1000, operators)
-        if pos >= len(tokens) or tokens[pos] != ')':
+        if pos >= len(tokens) or tokens[pos] != ")":
             raise ValueError("Missing closing parenthesis")
         return expr, pos + 1
-    
-    if token in ['+', '-'] and pos + 1 < len(tokens):
-        operand, pos = parse_primary(tokens, pos + 1)
+
+    if token in ["+", "-"] and pos + 1 < len(tokens):
+        operand, pos = parse_primary(tokens, pos + 1, operators)
         return Struct(token, 1, [operand]), pos
-            
-    if re.match(r'^\d+\.?\d*$', token):
+
+    if re.match(r"^\d+\.?\d*$", token):
         return Struct(token, 0, []), pos + 1
-    
-    if re.match(r'^[A-Z_]', token):
+
+    if re.match(r"^[A-Z_]", token):
         return Variable(token), pos + 1
 
-    if re.match(r'^[a-z]', token):
+    if re.match(r"^[a-z]", token):
         return Struct(token, 0, []), pos + 1
 
     raise ValueError(f"Unexpected token: {token}")
 
-def parse_precedence(tokens: List[str], pos: int, min_prec: int, operators: Dict[str, Tuple[int, bool]]) -> Tuple[Term, int]:
+
+def parse_precedence(
+    tokens: List[str],
+    pos: int,
+    min_prec: int,
+    operators: Dict[str, Tuple[int, bool]],
+) -> Tuple[Term, int]:
     left, pos = parse_primary(tokens, pos, operators)
     while pos < len(tokens):
         operator = tokens[pos]
@@ -56,49 +62,51 @@ def parse_precedence(tokens: List[str], pos: int, min_prec: int, operators: Dict
             break
 
         operator_prec, is_left_assoc = operators[operator]
-        
-        if (min_prec != 1000) and (operator_prec >= min_prec): # stop when find operator with high precedence (lower number)
+
+        if (min_prec != 1000) and (
+            operator_prec >= min_prec
+        ): 
             break
-        
+
         pos += 1
 
         next_min_prec = operator_prec - 1 if is_left_assoc else operator_prec
-        
+
         right, pos = parse_precedence(tokens, pos, next_min_prec, operators)
         left = Struct(operator, 2, [left, right])
     return left, pos
 
-def parse_arithmetic_expression(expr: str) -> Term:
-    operators = { # this ds might need to become flexible
-            '*': (400, True), # True is left, False is right
-            '/': (400, True), 
-            '//': (400, True),
-            'mod': (400, True),
-            '+': (500, True),
-            '-': (500, True),
-            '=:=': (700, False),
-            '=\=': (700, False),
-            '<': (700, False),
-            '>': (700, False),
-            '>=': (700, False),
-            '=<': (700, False),
-            '=': (700, False),
-            'is': (700, False),
-        }
 
-    # tokenize:
+def parse_arithmetic_expression(expr: str) -> Term:
+    operators = {  # this ds might need to become flexible
+        "*": (400, True),  # True is left, False is right
+        "/": (400, True),
+        "//": (400, True),
+        "mod": (400, True),
+        "+": (500, True),
+        "-": (500, True),
+        "=:=": (700, False),
+        "=\=": (700, False),
+        "<": (700, False),
+        ">": (700, False),
+        ">=": (700, False),
+        "=<": (700, False),
+        "=": (700, False),
+        "is": (700, False),
+    }
+
     expr = expr.strip()
-    pattern = r'(=:=|=\\=|>=|=<|//|mod|is|\d+\.?\d*|[A-Za-z_][A-Za-z0-9_]*|[+\-*/=<>()])'
+    pattern = r"(=:=|=\\=|>=|=<|//|mod|is|\d+\.?\d*|[A-Za-z_][A-Za-z0-9_]*|[+\-*/=<>()])"
     tokens = re.findall(pattern, expr)
     tokenized = [t for t in tokens if t.strip()]
     if not tokenized:
         raise ValueError("Empty Expression")
 
-    result, pos = parse_precedence(tokens, 0, 1000, operators)  
+    result, pos = parse_precedence(tokens, 0, 1000, operators)
 
     if pos < len(tokens):
         raise ValueError(f"Unexpected tokens: {tokens[pos:]}")
-    
+
     return result
 
 
@@ -115,19 +123,30 @@ def parse_struct(s: str) -> Term:
     else:
         if not s:
             raise ValueError("Empty term")
-        if any(op in s for op in ['is', '+', '-', '*', '/', '//', 'mod', '>', '<', '>=', '=<', '=:=', '=\=']):
-            try: 
+        if any(
+            op in s
+            for op in [
+                "is",
+                "+",
+                "-",
+                "*",
+                "/",
+                "//",
+                "mod",
+                ">",
+                "<",
+                ">=",
+                "=<",
+                "=:=",
+                "=\=",
+            ]
+        ):
+            try:
                 result = parse_arithmetic_expression(s)
                 return result
             except ValueError as e:
                 print(f"failed to parse {s}: {e}")
-                # TODO TODO
-                
 
-        # elif "is" in s:
-        #     params = [parse_term(p) for p in s.split("is")]
-        #     return Struct("is", 2, params)
-        
         elif s[0].isupper() or s[0] == "_":
             return Variable(s)  # TODO need variable checking
         return Struct(s, 0, [])
@@ -163,7 +182,6 @@ def parse_line(line: str) -> List[Term]:
         if ";" in tail_str:
             return flatten_semicolons(head, tail_str)
         else:
-            # split_args 로 최상위 쉼표만 분리
             parts = split_args(tail_str)
             tails = [parse_struct(part.strip()) for part in parts]
             return [head] + tails
@@ -179,7 +197,7 @@ def parse_string(s: str) -> List[List[Term]]:
             parsed_line
             and isinstance(parsed_line, list)
             and isinstance(parsed_line[0], list)
-        ):  # check nested:
+        ):  
             for p in parsed_line:
                 parsed.append(p)
         else:

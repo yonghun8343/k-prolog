@@ -4,7 +4,6 @@ from PARSER.ast import Term
 from PARSER.parser import parse_file, parse_string
 from SOLVER.solver import solve
 
-
 class Command:
     pass
 
@@ -36,7 +35,7 @@ class Halt(Command):
 
 def parse_command(command: str) -> Command:
     if command.startswith("[") and command.endswith("]."):
-        return Load(command[1:-2])  # range is hard coded right now
+        return Load(command[1:-2])  
     elif command.startswith("consult(") and command.endswith(")."):
         return Load(command[8:-2])
     elif command == "make.":
@@ -67,6 +66,7 @@ def execute(program: List[List[Term]]) -> None:
             try:
                 current_file = cmd.path
                 program = parse_file(cmd.path)
+                print("program", program)
             except Exception as e:
                 print(e)
         elif isinstance(cmd, Make):
@@ -94,7 +94,6 @@ def execute(program: List[List[Term]]) -> None:
         elif isinstance(cmd, Query):
             try:
                 goals = parse_string(cmd.query)
-                print(f"goal is {goals}")
             except Exception as e:
                 print(e)
                 continue
@@ -116,8 +115,4 @@ def print_result(result: bool, unifications: List[dict]) -> None:
         for unification in unifications:
             for key, value in unification.items():
                 print(f"{key} = {value}", end=" ")
-                if input() != ";":  # TODO not working
-                    # print(".", end = "")
-                    break
-                else:
-                    continue
+            

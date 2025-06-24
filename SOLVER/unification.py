@@ -2,17 +2,6 @@ from typing import Dict, List, Tuple
 from PARSER.ast import Struct, Term, Variable
 
 
-# TODO consider moving this back to solver.py
-def get_variables(terms: List[Term]) -> List[str]:
-    result = []
-    for t in terms:
-        if isinstance(t, Variable):
-            result.append(t.name)
-        elif isinstance(t, Struct):
-            result.extend(get_variables(t.params))
-    return result
-
-
 def extract_variable(vars: List[str], unif: Dict[str, Term]) -> Dict[str, Term]:
     return {v: unif[v] for v in vars if v in unif}
 
@@ -52,22 +41,35 @@ def match_params(
 ) -> Tuple[bool, Dict[str, Term]]:
     if not xs and not ys:
         return True, old_unif
+    if not xs or not ys:
+        return False, {}
     if ys and isinstance(ys[0], Variable):
         y = ys[0].name
-        sub = {y: xs[0]}
-        new_xs = substitute(sub, xs[1:])
-        new_ys = substitute(sub, ys[1:])
-        new_unif = substitute_unification(sub, old_unif)
-        new_unif[y] = xs[0]
+        if y in old_unif:
+            return match_params([old_unif[y]] + xs[1:], ys[1:], old_unif)
+        else:
+            sub = {y: xs[0]}
+            new_xs = substitute(sub, xs[1:])
+            new_ys = substitute(sub, ys[1:])
+            new_unif = substitute_unification(sub, old_unif)
+            new_unif[y] = xs[0]
         return match_params(new_xs, new_ys, new_unif)
     if xs and isinstance(xs[0], Variable):
         x = xs[0].name
-        sub = {x: ys[0]}
-        new_xs = substitute(sub, xs[1:])
-        new_ys = substitute(sub, ys[1:])
-        new_unif = substitute_unification(sub, old_unif)
-        new_unif[x] = ys[0]
-        return match_params(new_xs, new_ys, new_unif)
+        if x in old_unif:
+            bound_value = old_unif[x]
+            success, new_unif = match_params([bound_value], [ys[0]], old_unif)
+            if success:
+                return match_params(xs[1:], ys[1:], new_unif)
+            else:
+                return False, {}
+        else:
+            sub = {x: ys[0]}
+            new_xs = substitute(sub, xs[1:])
+            new_ys = substitute(sub, ys[1:])
+            new_unif = substitute_unification(sub, old_unif)
+            new_unif[x] = ys[0]
+            return match_params(new_xs, new_ys, new_unif)
     ok, unif = match_structs(xs[0], ys[0], old_unif)
     if ok:
         rest_xs = substitute(unif, xs[1:])
