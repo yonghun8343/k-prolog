@@ -1,4 +1,6 @@
 from typing import List
+import os
+import subprocess
 
 from PARSER.ast import Term
 from PARSER.parser import parse_file, parse_string
@@ -34,7 +36,20 @@ class Halt(Command):
 
 
 def parse_command(command: str) -> Command:
-    if command.startswith("[") and command.endswith("]."):
+    if command.startswith("edit(") and command.endswith(")."):
+        parsed = command[5:-2]
+        if parsed.startswith("file('") and parsed.endswith("')"): #TODO is txt right now
+            filename = parsed[6:-2]
+
+            with open(filename, 'w') as f:
+                f.write("")
+
+        elif parsed.startswith("'") and parsed.endswith("'"):
+            filename = parsed[1:-1]
+        else:
+            print("Unable to parse file name.")
+
+    elif command.startswith("[") and command.endswith("]."):
         return Load(command[1:-2])  
     elif command.startswith("consult(") and command.endswith(")."):
         return Load(command[8:-2])
@@ -112,7 +127,7 @@ def print_result(result: bool, unifications: List[dict]) -> None:
     if all(not unif for unif in unifications):
         print(result)
     else:
-        for unification in unifications:
+        for unification in unifications: # need to fix for = operator/predicate
             for key, value in unification.items():
                 print(f"{key} = {value}", end=" ")
             
