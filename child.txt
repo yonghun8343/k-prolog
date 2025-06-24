@@ -1,8 +1,2 @@
-sum(5).
-sum(3).
-sum(X + Y).
-
-language(prolog).
-language(c).
-lecture(prolog).
-interesting(X) :- lecture(X) language(X).
+eight(X) :- X is 3 + 5.
+addthree(X, Y) :- Y is X + 3.

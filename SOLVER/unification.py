@@ -1,8 +1,8 @@
 from typing import Dict, List, Tuple
-
 from PARSER.ast import Struct, Term, Variable
 
 
+# TODO consider moving this back to solver.py
 def get_variables(terms: List[Term]) -> List[str]:
     result = []
     for t in terms:

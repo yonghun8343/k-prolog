@@ -15,8 +15,10 @@ class Load(Command):
             path += ".txt"  # TODO hardcoded right now
         self.path = path
 
+
 class Make(Command):
     pass
+
 
 class Listing(Command):
     def __init__(self, predicate: str):
@@ -30,6 +32,7 @@ class Query(Command):
 
 class Halt(Command):
     pass
+
 
 def parse_command(command: str) -> Command:
     if command.startswith("[") and command.endswith("]."):
@@ -79,7 +82,9 @@ def execute(program: List[List[Term]]) -> None:
             if current_file:
                 with open(current_file, "r") as f:
                     for line in f:
-                        if (cmd.predicate_name == "none") or (cmd.predicate_name in line):
+                        if (cmd.predicate_name == "none") or (
+                            cmd.predicate_name in line
+                        ):
                             print(line, end="")
                     print("")
             else:
@@ -89,6 +94,7 @@ def execute(program: List[List[Term]]) -> None:
         elif isinstance(cmd, Query):
             try:
                 goals = parse_string(cmd.query)
+                print(f"goal is {goals}")
             except Exception as e:
                 print(e)
                 continue
@@ -102,6 +108,7 @@ def execute(program: List[List[Term]]) -> None:
                 print(f"ERROR: {e}")
                 continue
 
+
 def print_result(result: bool, unifications: List[dict]) -> None:
     if all(not unif for unif in unifications):
         print(result)
@@ -109,7 +116,7 @@ def print_result(result: bool, unifications: List[dict]) -> None:
         for unification in unifications:
             for key, value in unification.items():
                 print(f"{key} = {value}", end=" ")
-                if input() != ";":
+                if input() != ";":  # TODO not working
                     # print(".", end = "")
                     break
                 else:
