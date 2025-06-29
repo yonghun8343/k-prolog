@@ -1,9 +1,8 @@
 from typing import Dict, List, Tuple
 
 from PARSER.ast import Struct, Term, Variable
-
 from .unification import match_params, substitute_term
-
+from err import *
 
 # TODO should builtins be a class?
 def handle_is(
@@ -17,7 +16,7 @@ def handle_is(
         result = evaluate_arithmetic(right, old_unif)
 
         if isinstance(result, Variable):
-            raise ValueError("Arguments are not sufficiently instantiated.")
+            raise ErrUninstantiated(result.name, "Arithmetic Expression")
 
         result_term = Struct(
             str(int(result) if result.is_integer() else result), 0, []
@@ -26,8 +25,8 @@ def handle_is(
         success, new_unif = match_params([left], [result_term], old_unif)
         return success, new_unif if success else {}
 
-    except ValueError as e:
-        print(f"ERROR: {e}")
+    except ErrProlog as e:
+        handle_error(e, "is predicate")
         return False, {}
 
 
@@ -35,13 +34,13 @@ def evaluate_arithmetic(expr: Term, unif: Dict[str, Term]) -> float:
     expr = substitute_term(unif, expr)
 
     if isinstance(expr, Variable):
-        raise ValueError(f"Arguments are not sufficiently instantiated: {expr}")
+        raise ErrUninstantiated(expr.name, "Arithmetic Expression")
     elif isinstance(expr, Struct):
         if expr.arity == 0:
             try:
                 return float(expr.name)
             except ValueError:
-                raise ValueError(f"Not a number: {expr.name}")
+                raise ErrNotNumber(expr.name)
         elif expr.arity == 2:
             left_val = evaluate_arithmetic(expr.params[0], unif)
             right_val = evaluate_arithmetic(expr.params[1], unif)
@@ -53,18 +52,18 @@ def evaluate_arithmetic(expr: Term, unif: Dict[str, Term]) -> float:
                 return left_val * right_val
             elif expr.name == "/":
                 if right_val == 0:
-                    raise ValueError("Division by zero")
+                    raise ErrDivisionByZero()
                 return left_val / right_val
             elif expr.name == "//":
                 if right_val == 0:
-                    raise ValueError("Division by zero")
+                    raise ErrDivisionByZero()
                 return float(int(left_val // right_val))
             elif expr.name == "mod":
                 if right_val == 0:
-                    raise ValueError("Division by zero")
+                    raise ErrDivisionByZero()
                 return left_val % right_val
             else:
-                raise ValueError(f"Unknown arithmetic operator: {expr.name}")
+                raise ErrUnknownOperator(expr.name)
         elif expr.arity == 1:
             val = evaluate_arithmetic(expr.params[0], unif)
             if expr.name == "-":
@@ -72,10 +71,10 @@ def evaluate_arithmetic(expr: Term, unif: Dict[str, Term]) -> float:
             elif expr.name == "+":
                 return val
             else:
-                raise ValueError(f"Unknown unary operator: {expr.name}")
+                raise ErrUnknownOperator(expr.name)
 
         else:
-            raise ValueError(f"Cannot evaluate: {expr.name}/{expr.arity}")
+            raise ErrArithmetic(expr.name)
 
     return None
 
@@ -90,8 +89,8 @@ def handle_comparison(
         left = evaluate_arithmetic(left, unif)
         right = evaluate_arithmetic(right, unif)
 
-    except ValueError as e:
-        raise ValueError(f"Arithmetic: {e}")
+    except ErrProlog as e:
+        handle_error(e, "arithmetic evaluation")
 
     if goal.name == ">":
         success = left > right

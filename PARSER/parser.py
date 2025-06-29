@@ -2,6 +2,7 @@ import re
 from typing import List, Tuple, Dict
 
 from PARSER.ast import Struct, Term, Variable
+from err import *
 
 
 def split_args(s: str) -> List[str]:
@@ -23,14 +24,14 @@ def split_args(s: str) -> List[str]:
 
 def parse_primary(tokens: List[str], pos: int, operators) -> Tuple[Term, int]:
     if pos >= len(tokens):
-        raise ValueError("Unexpected end of expression")
+        raise ErrSyntax("Unexpected end of expression")
 
     token = tokens[pos]
 
     if token == "(":
         expr, pos = parse_precedence(tokens, pos + 1, 1000, operators)
         if pos >= len(tokens) or tokens[pos] != ")":
-            raise ValueError("Missing closing parenthesis")
+            raise ErrParenthesis("closing")
         return expr, pos + 1
 
     if token in ["+", "-"] and pos + 1 < len(tokens):
@@ -46,7 +47,7 @@ def parse_primary(tokens: List[str], pos: int, operators) -> Tuple[Term, int]:
     if re.match(r"^[a-z]", token):
         return Struct(token, 0, []), pos + 1
 
-    raise ValueError(f"Unexpected token: {token}")
+    raise ErrSyntax(f"Unexpected token: {token}")
 
 
 def parse_precedence(
@@ -100,12 +101,12 @@ def parse_arithmetic_expression(expr: str) -> Term:
     tokens = re.findall(pattern, expr)
     tokenized = [t for t in tokens if t.strip()]
     if not tokenized:
-        raise ValueError("Empty Expression")
+        raise ErrInvalidTerm(expr)
 
     result, pos = parse_precedence(tokens, 0, 1000, operators)
 
     if pos < len(tokens):
-        raise ValueError(f"Unexpected tokens: {tokens[pos:]}")
+        raise ErrInvalidTerm(tokens[pos:])
 
     return result
 
@@ -122,7 +123,7 @@ def parse_struct(s: str) -> Term:
         return Struct(name, len(params), params)
     else:
         if not s:
-            raise ValueError("Empty term")
+            raise ErrInvalidTerm("Empty term")
         if any(
             op in s
             for op in [
@@ -144,8 +145,8 @@ def parse_struct(s: str) -> Term:
             try:
                 result = parse_arithmetic_expression(s)
                 return result
-            except ValueError as e:
-                print(f"failed to parse {s}: {e}")
+            except ErrProlog as e:
+                handle_error(e, "parsing arithmetic expression")
 
         elif s[0].isupper() or s[0] == "_":
             return Variable(s)  # TODO need variable checking
@@ -172,7 +173,7 @@ def parse_line(line: str) -> List[Term]:
     if not stripped:
         return []
     if not stripped.endswith("."):
-        raise ValueError(f"Line must end with '.': {line}")
+        raise ErrCommandFormat(f"Line must end with '.': {line}")
     body = stripped[:-1]
     if ":-" in body:
         head_str, tail_str = body.split(":-", 1)
