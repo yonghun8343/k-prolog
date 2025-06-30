@@ -2,23 +2,28 @@ import re
 from typing import List, Tuple, Dict
 
 from PARSER.ast import Struct, Term, Variable
+from PARSER.Data.list import PrologList
 from err import *
 
 
 def split_args(s: str) -> List[str]:
-    parts, buf, depth = [], "", 0
+    parts, buf, depth, bracket_depth = [], "", 0, 0
     for ch in s:
-        if ch == "," and depth == 0:
-            parts.append(buf)
+        if ch == "," and depth == 0 and bracket_depth == 0:
+            parts.append(buf.strip())
             buf = ""
         else:
             if ch == "(":
                 depth += 1
             elif ch == ")":
                 depth -= 1
+            elif ch == "[":
+                bracket_depth += 1
+            elif ch == "]":
+                bracket_depth -= 1
             buf += ch
-    if buf:
-        parts.append(buf)
+    if buf.strip():
+        parts.append(buf.strip())
     return parts
 
 
@@ -109,23 +114,58 @@ def parse_arithmetic_expression(expr: str) -> Term:
     return result
 
 
+def parse_list(s: str) -> Term:
+    s = s.strip()
+    content = s[1:-1].strip()
+
+    if not content:  # empty list
+        return PrologList().to_struct()
+
+    if "|" in content:
+        parts = content.split("|", 1)
+        head = parts[0].strip()
+        tail = parts[1].strip()
+
+        if head:
+            elements = [parse_term(e.strip()) for e in split_args(head)]
+        else:
+            elements = []
+
+        tail = parse_term(tail)
+        return PrologList(elements, tail).to_struct()
+    else:
+        elements = [parse_term(e.strip()) for e in split_args(content)]
+        return PrologList(elements).to_struct()
+
+
 def parse_struct(s: str) -> Term:
     s = s.strip()
     m = re.match(r"^([a-z0-9][a-zA-Z0-9_]*)\s*\((.*)\)$", s)
-    if "=" in s and "=:=" not in s and "=\\=" not in s and "=<" not in s and ">=" not in s:
-        equals_pos = s.find('=')
-        
-        if (equals_pos > 0 and equals_pos < len(s) - 1 and 
-            s[equals_pos-1:equals_pos+2] not in ['=:=', '=\\='] and
-            s[equals_pos:equals_pos+2] not in ['=<']):
-            
+    if (
+        "=" in s
+        and "=:=" not in s
+        and "=\\=" not in s
+        and "=<" not in s
+        and ">=" not in s
+    ):
+        equals_pos = s.find("=")
+
+        if (
+            equals_pos > 0
+            and equals_pos < len(s) - 1
+            and s[equals_pos - 1 : equals_pos + 2] not in ["=:=", "=\\="]
+            and s[equals_pos : equals_pos + 2] not in ["=<"]
+        ):
             left_part = s[:equals_pos].strip()
-            right_part = s[equals_pos+1:].strip()
-            
+            right_part = s[equals_pos + 1 :].strip()
+
             left_term = parse_term(left_part)
             right_term = parse_term(right_part)
-            
+
             return Struct("=", 2, [left_term, right_term])
+    elif s.startswith("[") and s.endswith("]"):
+        parsed = parse_list(s)
+        return parse_list(s)
     elif m:
         name = m.group(1)
         args_str = m.group(2)
@@ -158,10 +198,10 @@ def parse_struct(s: str) -> Term:
                 return result
             except ErrProlog as e:
                 handle_error(e, "parsing arithmetic expression")
-        
+
         elif s[0].isupper() or s[0] == "_":
             return Variable(s)  # TODO need variable checking
-        
+
         return Struct(s, 0, [])
 
 

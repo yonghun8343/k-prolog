@@ -53,6 +53,14 @@ class ErrParenthesis(ErrSyntax):
             return "Syntax error: missing opening parenthesis"
 
 
+class ErrList(ErrSyntax):
+    def __init__(self, err: str = ""):
+        self.err = err
+
+    def __str__(self) -> str:
+        return f"Syntax error: list error: {self.err}"
+
+
 class ErrInvalidTerm(ErrSyntax):
     def __init__(self, term: str):
         self.term = term

@@ -74,8 +74,8 @@ def match_params(
     if ok:
         rest_xs = substitute(unif, xs[1:])
         rest_ys = substitute(unif, ys[1:])
-        
-        merged = {**old_unif, **unif}  
+
+        merged = {**old_unif, **unif}
         for key, value in unif.items():
             merged[key] = substitute_term(old_unif, value)
         return match_params(rest_xs, rest_ys, merged)

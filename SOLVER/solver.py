@@ -1,6 +1,7 @@
 from typing import Dict, List, Tuple
 
 from PARSER.ast import Struct, Term, Variable
+from PARSER.Data.list import handle_list_append
 
 from .builtin import handle_builtins, has_builtin
 from .unification import (
@@ -73,7 +74,11 @@ def solve_with_unification(
         return True, [old_unif], seq
     x, *rest = goals
 
-    if isinstance(x, Struct) and has_builtin(x.name):
+    if isinstance(x, Struct) and x.name == "append":
+        success, rest, new_unif = handle_list_append(x, rest, old_unif)
+        if success:
+            return solve_with_unification(program, rest, new_unif, seq)
+    elif isinstance(x, Struct) and has_builtin(x.name):
         success, new_unif = handle_builtins(x, old_unif)
         if success:
             return solve_with_unification(program, rest, new_unif, seq)
@@ -101,5 +106,5 @@ def solve(
     program: List[List[Term]], goals: List[Term]
 ) -> Tuple[bool, List[Dict[str, Term]]]:
     result, unifs, _ = solve_with_unification(program, goals, {}, 0)
-    final_unifs =  [extract_variable(get_variables(goals), u) for u in unifs]
+    final_unifs = [extract_variable(get_variables(goals), u) for u in unifs]
     return result, [extract_variable(get_variables(goals), u) for u in unifs]

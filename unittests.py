@@ -94,7 +94,7 @@ class TestKProlog(unittest.TestCase):
             "X = 5.",
             "Y = hello.",
             "f(A, B) = f(1, 2).",
-            "a(b, C, d(e, F, g(h, i, J))) = a(B, c, d(E, f, g(H, i, j)))."
+            "a(b, C, d(e, F, g(h, i, J))) = a(B, c, d(E, f, g(H, i, j))).",
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
@@ -110,8 +110,6 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("E = e", stdout)
         self.assertIn("H = h", stdout)
 
-
-
     def test_file_loading_and_facts(self):
         content = """parent(john, mary).
                     parent(john, tom).
@@ -123,7 +121,7 @@ class TestKProlog(unittest.TestCase):
         self.create_test_file("facts.txt", content)
 
         commands = [
-            "[facts].",  # Load the file
+            "[facts].",
             "parent(john, mary).",  # Should succeed
             "parent(mary, john).",  # Should fail
             "parent(john, X).",  # Should give multiple solutions
@@ -135,23 +133,9 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("loaded from facts.txt", stdout)
         self.assertIn("True", stdout)
         self.assertIn("False", stdout)
-
-    def test_simple_rules(self):
-        content = """parent(john, mary).
-                    parent(mary, sue).
-                    grandparent(X, Z) :- parent(X, Y), parent(Y, Z)."""
-
-        self.create_test_file("rules.txt", content)
-
-        commands = [
-            "[rules].",
-            "grandparent(john, sue).",  # Should succeed
-            "grandparent(john, X).",  # Should bind X to sue
-        ]
-
-        stdout, stderr, returncode = self.run_prolog_commands(commands)
-
-        self.assertIn("loaded from rules.txt", stdout)
+        self.assertIn("X = mary", stdout)
+        self.assertIn("X = tom", stdout)
+        self.assertIn("True", stdout)
 
     def test_recursive_factorial(self):
         content = """factorial(0, 1).
@@ -195,43 +179,42 @@ class TestKProlog(unittest.TestCase):
 
     def test_conjunction_comma(self):
         content = """parent(john, mary).
-                    parent(mary, sue).
-                    male(john).
-                    female(mary).
-                    female(sue)."""
+                     parent(mary, sue).
+                     female(mary).
+                     female(sue).
+                     mother(X) :- parent(Y, X), female(X).
+                     """
 
         self.create_test_file("conjunction.txt", content)
 
         commands = [
             "[conjunction].",
-            "parent(john, mary), female(mary).",  # Both should be true
-            "parent(john, mary), male(mary).",  # Should fail
-            "parent(X, Y), female(Y).",  # Should find solutions
+            "mother(X).\n",
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
         self.assertIn("loaded from conjunction.txt", stdout)
-        # First query should succeed, second should fail
+        self.assertIn("X = mary", stdout)
+        self.assertIn("X = sue", stdout)
 
     def test_disjunction_semicolon(self):
-        content = """likes(mary, pizza).
-                    likes(john, pasta).
-                    likes(sue, salad)."""
+        content = """language(prolog).
+                     language(c).
+                     lecture(prolog).
+                     lecture(python).
+                     interesting(X) :- language(X); lecture(X)."""
 
         self.create_test_file("disjunction.txt", content)
 
-        commands = [
-            "[disjunction].",
-            "likes(mary, pizza); likes(mary, pasta).",  # First part true
-            "likes(mary, soup); likes(mary, pizza).",  # Second part true
-            "likes(mary, soup); likes(mary, bread).",  # Both false
-        ]
+        commands = ["[disjunction].", "interesting(X).\n\n\n"]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
         self.assertIn("loaded from disjunction.txt", stdout)
-        # First two should succeed, third should fail
+        self.assertIn("X = prolog", stdout)
+        self.assertIn("X = c", stdout)
+        self.assertIn("X = python", stdout)
 
     def test_nested_expressions(self):
         commands = [
@@ -256,14 +239,7 @@ class TestKProlog(unittest.TestCase):
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
         # Should contain error messages
-        self.assertTrue(
-            "ERROR" in stdout
-            or "Error" in stdout
-            or "error" in stdout
-            or "ERROR" in stderr
-            or "Error" in stderr
-            or "error" in stderr
-        )
+        self.assertTrue("ERROR" in stderr or "Error" in stderr)
 
     def test_make_reload(self):
         # Create initial file
@@ -303,12 +279,37 @@ class TestKProlog(unittest.TestCase):
 
         commands = [
             "[multiple].",
-            "likes(mary, X).",  # should give X = pizza; X = pasta
+            "likes(mary, X).\n",
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
         self.assertIn("loaded from multiple.txt", stdout)
+        self.assertIn("X = pizza", stdout)
+        self.assertIn("X = pasta", stdout)
+
+    def test_list(self):
+        content = """sum([], 0).
+                     sum([H|T], X) :- sum(T,Y), X is H + Y."""
+
+        self.create_test_file("list.txt", content)
+
+        commands = [
+            "[list].",
+            "sum([1,2,3,4], X).",
+            "append([1,2],[3,4], L).",
+            "append([], [1,2], X).",
+            "append([3,4],[], X).",
+            "append([1,2],[3,4], []).",
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("X = 10", stdout)
+        self.assertIn("L = [1, 2, 3, 4]", stdout)
+        self.assertIn("X = [1, 2]", stdout)
+        self.assertIn("X = [3, 4]", stdout)
+        self.assertIn("False", stdout)
 
 
 if __name__ == "__main__":

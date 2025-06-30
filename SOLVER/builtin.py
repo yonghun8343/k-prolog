@@ -4,10 +4,11 @@ from PARSER.ast import Struct, Term, Variable
 from .unification import match_params, substitute_term
 from err import *
 
+
 # TODO should builtins be a class?
 def handle_is(
     goal: Struct, old_unif: Dict[str, Term]
-) -> Tuple[bool, List[Term], Dict[str, Term]]:
+) -> Tuple[bool, Dict[str, Term]]:
     if len(goal.params) != 2:
         return False, [], {}
 
@@ -81,7 +82,7 @@ def evaluate_arithmetic(expr: Term, unif: Dict[str, Term]) -> float:
 
 def handle_comparison(
     goal: Struct, unif: Dict[str, Term]
-) -> Tuple[bool, List[Term], Dict[str, Term]]:
+) -> Tuple[bool, Dict[str, Term]]:
     if len(goal.params) != 2:
         return False, {}
     left, right = goal.params
@@ -109,13 +110,17 @@ def handle_comparison(
 
     return success, unif
 
-def handle_equals(goal: Struct, unif: Dict[str, Term]) -> Tuple[bool, List[Term], Dict[str, Term]]:
+
+def handle_equals(
+    goal: Struct, unif: Dict[str, Term]
+) -> Tuple[bool, Dict[str, Term]]:
     if len(goal.params) != 2:
         return False, {}
     left, right = goal.params
 
     success, new_unif = match_params([left], [right], unif)
     return success, new_unif if success else unif
+
 
 BUILTINS = {
     "is": handle_is,
@@ -125,7 +130,7 @@ BUILTINS = {
     "=<": handle_comparison,
     "=:=": handle_comparison,
     "=\=": handle_comparison,
-    "=": handle_equals
+    "=": handle_equals,
 }
 
 
