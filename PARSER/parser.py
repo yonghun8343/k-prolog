@@ -41,10 +41,10 @@ def parse_primary(tokens: List[str], pos: int, operators) -> Tuple[Term, int]:
     if re.match(r"^\d+\.?\d*$", token):
         return Struct(token, 0, []), pos + 1
 
-    if re.match(r"^[A-Z_]", token):
+    if token[0].isupper() or token[0] == "_":
         return Variable(token), pos + 1
 
-    if re.match(r"^[a-z]", token):
+    if token[0].islower():
         return Struct(token, 0, []), pos + 1
 
     raise ErrSyntax(f"Unexpected token: {token}")
@@ -64,9 +64,7 @@ def parse_precedence(
 
         operator_prec, is_left_assoc = operators[operator]
 
-        if (min_prec != 1000) and (
-            operator_prec >= min_prec
-        ): 
+        if (min_prec != 1000) and (operator_prec >= min_prec):
             break
 
         pos += 1
@@ -114,12 +112,25 @@ def parse_arithmetic_expression(expr: str) -> Term:
 def parse_struct(s: str) -> Term:
     s = s.strip()
     m = re.match(r"^([a-z0-9][a-zA-Z0-9_]*)\s*\((.*)\)$", s)
-    if m:
+    if "=" in s and "=:=" not in s and "=\\=" not in s and "=<" not in s and ">=" not in s:
+        equals_pos = s.find('=')
+        
+        if (equals_pos > 0 and equals_pos < len(s) - 1 and 
+            s[equals_pos-1:equals_pos+2] not in ['=:=', '=\\='] and
+            s[equals_pos:equals_pos+2] not in ['=<']):
+            
+            left_part = s[:equals_pos].strip()
+            right_part = s[equals_pos+1:].strip()
+            
+            left_term = parse_term(left_part)
+            right_term = parse_term(right_part)
+            
+            return Struct("=", 2, [left_term, right_term])
+    elif m:
         name = m.group(1)
         args_str = m.group(2)
         parts = split_args(args_str)
         params = [parse_term(p) for p in parts]
-
         return Struct(name, len(params), params)
     else:
         if not s:
@@ -147,9 +158,10 @@ def parse_struct(s: str) -> Term:
                 return result
             except ErrProlog as e:
                 handle_error(e, "parsing arithmetic expression")
-
+        
         elif s[0].isupper() or s[0] == "_":
             return Variable(s)  # TODO need variable checking
+        
         return Struct(s, 0, [])
 
 
@@ -198,7 +210,7 @@ def parse_string(s: str) -> List[List[Term]]:
             parsed_line
             and isinstance(parsed_line, list)
             and isinstance(parsed_line[0], list)
-        ):  
+        ):
             for p in parsed_line:
                 parsed.append(p)
         else:

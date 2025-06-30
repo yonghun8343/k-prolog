@@ -109,6 +109,13 @@ def handle_comparison(
 
     return success, unif
 
+def handle_equals(goal: Struct, unif: Dict[str, Term]) -> Tuple[bool, List[Term], Dict[str, Term]]:
+    if len(goal.params) != 2:
+        return False, {}
+    left, right = goal.params
+
+    success, new_unif = match_params([left], [right], unif)
+    return success, new_unif if success else unif
 
 BUILTINS = {
     "is": handle_is,
@@ -118,6 +125,7 @@ BUILTINS = {
     "=<": handle_comparison,
     "=:=": handle_comparison,
     "=\=": handle_comparison,
+    "=": handle_equals
 }
 
 

@@ -9,6 +9,7 @@ from .unification import (
     substitute_term,
 )
 
+
 def get_variables(terms: List[Term]) -> List[str]:
     result = []
     for t in terms:
@@ -17,6 +18,7 @@ def get_variables(terms: List[Term]) -> List[str]:
         elif isinstance(t, Struct):
             result.extend(get_variables(t.params))
     return result
+
 
 def is_relevant(goal: Term, clause: List[Term]) -> bool:
     if not clause or not isinstance(goal, Struct):
@@ -61,7 +63,7 @@ def init_rules(clause: List[Term], counter: int) -> Tuple[List[Term], int]:
     return renamed_clause, current_counter
 
 
-def solve_with_unification(  
+def solve_with_unification(
     program: List[List[Term]],
     goals: List[Term],
     old_unif: Dict[str, Term],
@@ -99,4 +101,5 @@ def solve(
     program: List[List[Term]], goals: List[Term]
 ) -> Tuple[bool, List[Dict[str, Term]]]:
     result, unifs, _ = solve_with_unification(program, goals, {}, 0)
+    final_unifs =  [extract_variable(get_variables(goals), u) for u in unifs]
     return result, [extract_variable(get_variables(goals), u) for u in unifs]
