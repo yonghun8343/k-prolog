@@ -47,18 +47,15 @@ def read_multi_line_input() -> str:
 
             lines.append(line)
 
-            # check if line ends with period
             if line.strip().endswith("."):
                 break
 
         except EOFError:
             if lines:
-                # if we have partial input, treat as incomplete
                 raise ErrSyntax("Incomplete input - missing period")
             else:
                 raise EOFError
 
-    # join all lines and clean up whitespace
     full_input = " ".join(line.strip() for line in lines)
     return full_input
 
@@ -200,34 +197,34 @@ def print_result(result: bool, unifications: List[dict]) -> None:
 
 def format_term(term: Term) -> str:
     if isinstance(term, Struct):
-        # if isinstance(term, Struct) and (term.name == "[]" or term.name == "."):
-        #     return format_list(term)
-        # else:
-        if term.arity == 0:
-            return term.name
+        if isinstance(term, Struct) and (term.name == "[]" or term.name == "."):
+            return format_list(term)
         else:
-            params = ", ".join(format_term(p) for p in term.params)
-            return f"{term.name}({params})"
+            if term.arity == 0:
+                return term.name
+            else:
+                params = ", ".join(format_term(p) for p in term.params)
+                return f"{term.name}({params})"
     elif isinstance(term, Variable):
         return term.name
     else:
         return str(term)
 
 
-# def format_list(term: Term, elements: List[str] = None) -> str:
-#     if elements is None:
-#         elements = []
+def format_list(term: Term, elements: List[str] = None) -> str:
+    if elements is None:
+        elements = []
 
-#     if isinstance(term, Struct):
-#         if term.name == "[]" and term.arity == 0:
-#             return "[" + ", ".join(elements) + "]"
-#         elif term.name == "." and term.arity == 2:
-#             head, tail = term.params
-#             elements.append(format_term(head))
-#             return format_list(tail, elements)
-#         else:
-#             tail_str = format_term(term)
-#             return "[" + ", ".join(elements) + "|" + tail_str + "]"
-#     else:
-#         tail_str = format_term(term)
-#         return "[" + ", ".join(elements) + "|" + tail_str + "]"
+    if isinstance(term, Struct):
+        if term.name == "[]" and term.arity == 0:
+            return "[" + ", ".join(elements) + "]"
+        elif term.name == "." and term.arity == 2:
+            head, tail = term.params
+            elements.append(format_term(head))
+            return format_list(tail, elements)
+        else:
+            tail_str = format_term(term)
+            return "[" + ", ".join(elements) + "|" + tail_str + "]"
+    else:
+        tail_str = format_term(term)
+        return "[" + ", ".join(elements) + "|" + tail_str + "]"

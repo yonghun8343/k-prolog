@@ -74,12 +74,8 @@ def solve_with_unification(
         return True, [old_unif], seq
     x, *rest = goals
 
-    if isinstance(x, Struct) and x.name == "append":
-        success, rest, new_unif = handle_list_append(x, rest, old_unif)
-        if success:
-            return solve_with_unification(program, rest, new_unif, seq)
-    elif isinstance(x, Struct) and has_builtin(x.name):
-        success, new_unif = handle_builtins(x, old_unif)
+    if isinstance(x, Struct) and has_builtin(x.name):
+        success, rest, new_unif = handle_builtins(x, rest, old_unif)
         if success:
             return solve_with_unification(program, rest, new_unif, seq)
 

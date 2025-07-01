@@ -114,28 +114,28 @@ def parse_arithmetic_expression(expr: str) -> Term:
     return result
 
 
-# def parse_list(s: str) -> Term:
-#     s = s.strip()
-#     content = s[1:-1].strip()
+def parse_list(s: str) -> Term:
+    s = s.strip()
+    content = s[1:-1].strip()
 
-#     if not content:  # empty list
-#         return PrologList().to_struct()
+    if not content:  # empty list
+        return PrologList().to_struct()
 
-#     if "|" in content:
-#         parts = content.split("|", 1)
-#         head = parts[0].strip()
-#         tail = parts[1].strip()
+    if "|" in content: # [H | T]
+        parts = content.split("|", 1)
+        head = parts[0].strip()
+        tail = parts[1].strip()
 
-#         if head:
-#             elements = [parse_term(e.strip()) for e in split_args(head)]
-#         else:
-#             elements = []
+        if head:
+            elements = [parse_term(e.strip()) for e in split_args(head)]
+        else:
+            elements = []
 
-#         tail = parse_term(tail)
-#         return PrologList(elements, tail).to_struct()
-#     else:
-#         elements = [parse_term(e.strip()) for e in split_args(content)]
-#         return PrologList(elements).to_struct()
+        tail = parse_term(tail)
+        return PrologList(elements, tail).to_struct()
+    else:
+        elements = [parse_term(e.strip()) for e in split_args(content)]
+        return PrologList(elements).to_struct()
 
 
 def parse_struct(s: str) -> Term:
@@ -163,9 +163,9 @@ def parse_struct(s: str) -> Term:
             right_term = parse_term(right_part)
 
             return Struct("=", 2, [left_term, right_term])
-    # elif s.startswith("[") and s.endswith("]"):
-    #     parsed = parse_list(s)
-    #     return parse_list(s)
+    elif s.startswith("[") and s.endswith("]"):
+        parsed = parse_list(s)
+        return parse_list(s)
     elif m:
         name = m.group(1)
         args_str = m.group(2)
