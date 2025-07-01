@@ -121,7 +121,7 @@ def parse_list(s: str) -> Term:
     if not content:  # empty list
         return PrologList().to_struct()
 
-    if "|" in content: # [H | T]
+    if "|" in content:  # [H | T]
         parts = content.split("|", 1)
         head = parts[0].strip()
         tail = parts[1].strip()

@@ -133,7 +133,7 @@ BUILTINS = {
     "=\=": handle_comparison,
     "=": handle_equals,
     "append": handle_list_append,
-    "length": handle_list_length
+    "length": handle_list_length,
 }
 
 

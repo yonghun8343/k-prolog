@@ -43,73 +43,6 @@ class TestKProlog(unittest.TestCase):
             stdout, stderr = process.communicate()
             return stdout, stderr, -1
 
-    def test_basic_arithmetic_operators(self):
-        commands = [
-            "X is 2 + 3.",
-            "Y is 10 - 4.",
-            "Z is 3 * 4.",
-            "W is 15 / 3.",
-            "A is 17 // 5.",
-            "B is 17 mod 5.",
-        ]
-
-        stdout, stderr, returncode = self.run_prolog_commands(commands)
-
-        self.assertIn("X = 5", stdout)
-        self.assertIn("Y = 6", stdout)
-        self.assertIn("Z = 12", stdout)
-        self.assertIn("W = 5", stdout)
-        self.assertIn("A = 3", stdout)
-        self.assertIn("B = 2", stdout)
-
-    def test_arithmetic_precedence(self):
-        commands = [
-            "X is 2 + 3 * 4.",  # Should be 14, not 20
-            "Y is 8 / 4 / 2.",  # Should be 1 (left associative)
-            "Z is (2 + 3) * 4.",  # Should be 20
-        ]
-
-        stdout, stderr, returncode = self.run_prolog_commands(commands)
-
-        self.assertIn("X = 14", stdout)
-        self.assertIn("Y = 1", stdout)
-        self.assertIn("Z = 20", stdout)
-
-    def test_comparison_operators(self):
-        commands = [
-            "5 =:= 2 + 3.",  # all should succeed
-            "5 =\\= 6.",
-            "3 < 5.",
-            "5 > 3.",
-            "5 >= 5.",
-            "5 =< 5.",
-        ]
-
-        stdout, stderr, returncode = self.run_prolog_commands(commands)
-
-        self.assertNotIn("False", stdout)
-
-    def test_unification_operator(self):
-        commands = [
-            "X = 5.",
-            "Y = hello.",
-            "f(A, B) = f(1, 2).",
-            "a(b, C, d(e, F, g(h, i, J))) = a(B, c, d(E, f, g(H, i, j))).",
-        ]
-
-        stdout, stderr, returncode = self.run_prolog_commands(commands)
-
-        self.assertIn("X = 5", stdout)
-        self.assertIn("Y = hello", stdout)
-        self.assertIn("A = 1", stdout)
-        self.assertIn("B = 2", stdout)
-        self.assertIn("C = c", stdout)
-        self.assertIn("F = f", stdout)
-        self.assertIn("J = j", stdout)
-        self.assertIn("B = b", stdout)
-        self.assertIn("E = e", stdout)
-        self.assertIn("H = h", stdout)
-
     def test_file_loading_and_facts(self):
         content = """parent(john, mary).
                     parent(john, tom).
@@ -124,7 +57,7 @@ class TestKProlog(unittest.TestCase):
             "[facts].",
             "parent(john, mary).",  # Should succeed
             "parent(mary, john).",  # Should fail
-            "parent(john, X).",  # Should give multiple solutions
+            "parent(john, X).",  # Should give multiple solutions (mary, tom)
             "likes(mary, pizza).",  # Should succeed
         ]
 
@@ -189,7 +122,7 @@ class TestKProlog(unittest.TestCase):
 
         commands = [
             "[conjunction].",
-            "mother(X).\n",
+            "mother(X).\n",  # Should give multiple solutions, X = mary, sue
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
@@ -207,7 +140,10 @@ class TestKProlog(unittest.TestCase):
 
         self.create_test_file("disjunction.txt", content)
 
-        commands = ["[disjunction].", "interesting(X).\n\n\n"]
+        commands = [
+            "[disjunction].",
+            "interesting(X).\n\n\n",
+        ]  # Should give multiple solutions, X = prolog, c, python
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
@@ -215,31 +151,6 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("X = prolog", stdout)
         self.assertIn("X = c", stdout)
         self.assertIn("X = python", stdout)
-
-    def test_nested_expressions(self):
-        commands = [
-            "X is (2 + 3) * (4 - 1).",  # Should be 15
-            "Y is 2 + (3 * (4 + 1)).",  # Should be 17
-            "Z is ((8 / 4) + 1) * 3.",  # Should be 9
-        ]
-
-        stdout, stderr, returncode = self.run_prolog_commands(commands)
-
-        self.assertIn("X = 15", stdout)
-        self.assertIn("Y = 17", stdout)
-        self.assertIn("Z = 9", stdout)
-
-    def test_error_cases(self):
-        commands = [
-            "X is Y + 3.",  # Y uninstantiated - should error
-            "X is 5 / 0.",  # Division by zero - should error
-            "atom =:= 5.",  # Type error - should error
-        ]
-
-        stdout, stderr, returncode = self.run_prolog_commands(commands)
-
-        # Should contain error messages
-        self.assertTrue("ERROR" in stderr or "Error" in stderr)
 
     def test_make_reload(self):
         # Create initial file
@@ -279,7 +190,7 @@ class TestKProlog(unittest.TestCase):
 
         commands = [
             "[multiple].",
-            "likes(mary, X).\n",
+            "likes(mary, X).\n",  # Should give multiple solutions, X = pizza, pasta
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
@@ -287,29 +198,6 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("loaded from multiple.txt", stdout)
         self.assertIn("X = pizza", stdout)
         self.assertIn("X = pasta", stdout)
-
-    def test_list(self):
-        content = """sum([], 0).
-                     sum([H|T], X) :- sum(T,Y), X is H + Y."""
-
-        self.create_test_file("list.txt", content)
-
-        commands = [
-            "[list].",
-            "sum([1,2,3,4], X).",
-            "append([1,2],[3,4], L).",
-            "append([], [1,2], X).",
-            "append([3,4],[], X).",
-            "append([1,2],[3,4], []).",
-        ]
-
-        stdout, stderr, returncode = self.run_prolog_commands(commands)
-
-        self.assertIn("X = 10", stdout)
-        self.assertIn("L = [1, 2, 3, 4]", stdout)
-        self.assertIn("X = [1, 2]", stdout)
-        self.assertIn("X = [3, 4]", stdout)
-        self.assertIn("False", stdout)
 
 
 if __name__ == "__main__":

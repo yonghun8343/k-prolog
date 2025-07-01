@@ -79,27 +79,33 @@ def handle_list_length(
 ) -> Tuple[bool, List[Term], Dict[str, Term]]:
     if len(goal.params) != 2 or goal.arity != 2:
         return False, [], {}
-    
+
     list_term, length_term = goal.params
     list_term = substitute_term(unif, list_term)
     length_term = substitute_term(unif, length_term)
-    
+
     # length(List, N) where List is instantiated and N is variable
     if not isinstance(list_term, Variable):
-       actual_length = count_list_length(list_term)
-       if actual_length is not None:
-           length_struct = Struct(str(actual_length), 0, [])
-           success, new_unif = match_params([length_term], [length_struct], unif)
-           return success, rest_goals, new_unif if success else {}
-   
+        actual_length = count_list_length(list_term)
+        if actual_length is not None:
+            length_struct = Struct(str(actual_length), 0, [])
+            success, new_unif = match_params(
+                [length_term], [length_struct], unif
+            )
+            return success, rest_goals, new_unif if success else {}
+
     # # length(List, N) where N is instantiated and List is variable
-    elif isinstance(list_term, Variable) and not isinstance(length_term, Variable):
+    elif isinstance(list_term, Variable) and not isinstance(
+        length_term, Variable
+    ):
         if isinstance(length_term, Struct) and length_term.arity == 0:
             try:
                 n = int(length_term.name)
                 if n >= 0:
                     generated_list = generate_list(n)
-                    success, new_unif = match_params([list_term], [generated_list], unif)
+                    success, new_unif = match_params(
+                        [list_term], [generated_list], unif
+                    )
                     return success, rest_goals, new_unif if success else unif
             except ValueError:
                 raise ErrList("Error generating list")
@@ -111,8 +117,9 @@ def handle_list_length(
         #     i += 1
         #     success, new_unif = match_params([list_term], [generated_list], unif)
         #     return success, new_unif if success else unif
-   
+
     return False, {}
+
 
 def count_list_length(list_term: Term) -> int:
     count = 0
@@ -129,11 +136,13 @@ def count_list_length(list_term: Term) -> int:
         else:
             return None
 
-def handle_list_permutation(goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+
+def handle_list_permutation(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], Dict[str, Term]]:
     if len(goal.params) != 2 or goal.arity != 2:
         return False, [], {}
-    
+
     list1, list2 = goal.params
     print(extract_list(list1))
 
@@ -142,16 +151,16 @@ def handle_list_permutation(goal: Struct, rest_goals: List[Term], unif: Dict[str
 
     if is_empty_list(list1) and is_empty_list(list2):
         return True, rest_goals, unif
-    
+
     if is_empty_list(list1) or is_empty_list(list2):
         return False, [], {}
-    
-    #TODO think about if this needs to be more complex
+
+    # TODO think about if this needs to be more complex
     if (not isinstance(list1, Variable)) and (not isinstance(list2, Variable)):
         # extract list elements and check if one is a permutation of the other
         list1_extr = extract_list(list1)
         list2_extr = extract_list(list2)
-        
+
         permutations = list(itertools.permutations(list1_extr))
         print("permutations is ", permutations)
         for permutation in permutations:
@@ -166,8 +175,9 @@ def handle_list_permutation(goal: Struct, rest_goals: List[Term], unif: Dict[str
     if isinstance(list1, Variable):
         # extract then generate all permutation goals
         pass
-    
+
     return False, [], {}
+
 
 def extract_list(term: Term) -> List:
     res = []
@@ -184,27 +194,30 @@ def extract_list(term: Term) -> List:
         else:
             return None
 
+
 # def handle_list_select(
 #     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 # ) -> Tuple[bool, List[Term], Dict[str, Term]]:
 #     if len(goal.params) != 3 or goal.arity != 3:
 #         return False, rest_goals, {}
-    
+
 #     elt, list_term, remainder = goal.params
 #     elt = substitute_term(unif, elt)
 #     list_term = substitute_term(unif, list_term)
 #     remainder = substitute_term(unif, remainder)
 
+
 def generate_list(n: int) -> Term:
     if n == 0:
         return Struct("[]", 0, [])
-    
+
     result = Struct("[]", 0, [])
     for i in range(n):
         var = Variable(f"_")
-        result = Struct(".", 2, [var,result])
-    
+        result = Struct(".", 2, [var, result])
+
     return result
+
 
 def is_empty_list(term: Term) -> bool:
     return isinstance(term, Struct) and term.name == "[]" and term.arity == 0
