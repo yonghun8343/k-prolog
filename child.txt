@@ -1,6 +1,2 @@
-sum(0,0).
-sum(N, Result) :- N > 0, N1 is N - 1, sum(N1, SubResult), Result is N + SubResult.
-
-
-factorial(0, 1).
-factorial(N, Result) :- N > 0, N1 is N - 1, factorial(N1, SubResult), Result is N * SubResult.
+sum([], 0).
+sum([H|T], X) :- sum(T,Y), X is H + Y.

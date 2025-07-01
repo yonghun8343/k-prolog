@@ -2,35 +2,41 @@ import re
 from typing import List, Tuple, Dict
 
 from PARSER.ast import Struct, Term, Variable
+from PARSER.Data.list import PrologList
+from err import *
 
 
 def split_args(s: str) -> List[str]:
-    parts, buf, depth = [], "", 0
+    parts, buf, depth, bracket_depth = [], "", 0, 0
     for ch in s:
-        if ch == "," and depth == 0:
-            parts.append(buf)
+        if ch == "," and depth == 0 and bracket_depth == 0:
+            parts.append(buf.strip())
             buf = ""
         else:
             if ch == "(":
                 depth += 1
             elif ch == ")":
                 depth -= 1
+            elif ch == "[":
+                bracket_depth += 1
+            elif ch == "]":
+                bracket_depth -= 1
             buf += ch
-    if buf:
-        parts.append(buf)
+    if buf.strip():
+        parts.append(buf.strip())
     return parts
 
 
 def parse_primary(tokens: List[str], pos: int, operators) -> Tuple[Term, int]:
     if pos >= len(tokens):
-        raise ValueError("Unexpected end of expression")
+        raise ErrSyntax("Unexpected end of expression")
 
     token = tokens[pos]
 
     if token == "(":
         expr, pos = parse_precedence(tokens, pos + 1, 1000, operators)
         if pos >= len(tokens) or tokens[pos] != ")":
-            raise ValueError("Missing closing parenthesis")
+            raise ErrParenthesis("closing")
         return expr, pos + 1
 
     if token in ["+", "-"] and pos + 1 < len(tokens):
@@ -40,13 +46,13 @@ def parse_primary(tokens: List[str], pos: int, operators) -> Tuple[Term, int]:
     if re.match(r"^\d+\.?\d*$", token):
         return Struct(token, 0, []), pos + 1
 
-    if re.match(r"^[A-Z_]", token):
+    if token[0].isupper() or token[0] == "_":
         return Variable(token), pos + 1
 
-    if re.match(r"^[a-z]", token):
+    if token[0].islower():
         return Struct(token, 0, []), pos + 1
 
-    raise ValueError(f"Unexpected token: {token}")
+    raise ErrSyntax(f"Unexpected token: {token}")
 
 
 def parse_precedence(
@@ -63,9 +69,7 @@ def parse_precedence(
 
         operator_prec, is_left_assoc = operators[operator]
 
-        if (min_prec != 1000) and (
-            operator_prec >= min_prec
-        ): 
+        if (min_prec != 1000) and (operator_prec >= min_prec):
             break
 
         pos += 1
@@ -100,29 +104,77 @@ def parse_arithmetic_expression(expr: str) -> Term:
     tokens = re.findall(pattern, expr)
     tokenized = [t for t in tokens if t.strip()]
     if not tokenized:
-        raise ValueError("Empty Expression")
+        raise ErrInvalidTerm(expr)
 
     result, pos = parse_precedence(tokens, 0, 1000, operators)
 
     if pos < len(tokens):
-        raise ValueError(f"Unexpected tokens: {tokens[pos:]}")
+        raise ErrInvalidTerm(tokens[pos:])
 
     return result
+
+
+# def parse_list(s: str) -> Term:
+#     s = s.strip()
+#     content = s[1:-1].strip()
+
+#     if not content:  # empty list
+#         return PrologList().to_struct()
+
+#     if "|" in content:
+#         parts = content.split("|", 1)
+#         head = parts[0].strip()
+#         tail = parts[1].strip()
+
+#         if head:
+#             elements = [parse_term(e.strip()) for e in split_args(head)]
+#         else:
+#             elements = []
+
+#         tail = parse_term(tail)
+#         return PrologList(elements, tail).to_struct()
+#     else:
+#         elements = [parse_term(e.strip()) for e in split_args(content)]
+#         return PrologList(elements).to_struct()
 
 
 def parse_struct(s: str) -> Term:
     s = s.strip()
     m = re.match(r"^([a-z0-9][a-zA-Z0-9_]*)\s*\((.*)\)$", s)
-    if m:
+    if (
+        "=" in s
+        and "=:=" not in s
+        and "=\\=" not in s
+        and "=<" not in s
+        and ">=" not in s
+    ):
+        equals_pos = s.find("=")
+
+        if (
+            equals_pos > 0
+            and equals_pos < len(s) - 1
+            and s[equals_pos - 1 : equals_pos + 2] not in ["=:=", "=\\="]
+            and s[equals_pos : equals_pos + 2] not in ["=<"]
+        ):
+            left_part = s[:equals_pos].strip()
+            right_part = s[equals_pos + 1 :].strip()
+
+            left_term = parse_term(left_part)
+            right_term = parse_term(right_part)
+
+            return Struct("=", 2, [left_term, right_term])
+    # elif s.startswith("[") and s.endswith("]"):
+    #     parsed = parse_list(s)
+    #     return parse_list(s)
+    elif m:
         name = m.group(1)
         args_str = m.group(2)
         parts = split_args(args_str)
         params = [parse_term(p) for p in parts]
-
         return Struct(name, len(params), params)
     else:
         if not s:
-            raise ValueError("Empty term")
+            raise ErrInvalidTerm("Empty term")
         if any(
             op in s
             for op in [
@@ -144,11 +196,12 @@ def parse_struct(s: str) -> Term:
             try:
                 result = parse_arithmetic_expression(s)
                 return result
-            except ValueError as e:
-                print(f"failed to parse {s}: {e}")
+            except ErrProlog as e:
+                handle_error(e, "parsing arithmetic expression")
 
         elif s[0].isupper() or s[0] == "_":
             return Variable(s)  # TODO need variable checking
+
         return Struct(s, 0, [])
 
 
@@ -172,7 +225,7 @@ def parse_line(line: str) -> List[Term]:
     if not stripped:
         return []
     if not stripped.endswith("."):
-        raise ValueError(f"Line must end with '.': {line}")
+        raise ErrCommandFormat(f"Line must end with '.': {line}")
     body = stripped[:-1]
     if ":-" in body:
         head_str, tail_str = body.split(":-", 1)
@@ -197,7 +250,7 @@ def parse_string(s: str) -> List[List[Term]]:
             parsed_line
             and isinstance(parsed_line, list)
             and isinstance(parsed_line[0], list)
-        ):  
+        ):
             for p in parsed_line:
                 parsed.append(p)
         else:
