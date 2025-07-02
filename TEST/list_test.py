@@ -105,7 +105,8 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("L = [7, 6]", stdout)
         self.assertIn("True", stdout)
 
-
+    # def test_n_queens(self):
+        
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

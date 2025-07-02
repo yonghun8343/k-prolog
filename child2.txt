@@ -1,1 +1,3 @@
-fruit(apple).
+parent(john, mary) :- apple(john):- banana(meep).
+parent(john, meep)
+parent(mary, meep).

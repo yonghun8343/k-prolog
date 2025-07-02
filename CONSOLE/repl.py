@@ -106,15 +106,33 @@ def parse_file_multiline(filepath: str) -> List[List[Term]]:
 
     clauses = []
     for statement in statements:
+        validate_clause_syntax(statement)
         try:
             parsed = parse_string(statement)
             clauses.extend(parsed)
         except Exception as e:
             raise ErrSyntax(f"Error parsing statement '{statement}': {e}")
 
+    print("clauses is ", clauses)
     return clauses
 
+def validate_clause_syntax(statement: str) -> None:
+    """Simple validation for common syntax errors"""
+    statement = statement.strip()
+    if not statement or not statement.endswith('.'):
+        return
 
+    content = statement[:-1].strip()
+
+    if content.count(':-') > 1:
+        raise ErrSyntax(f"Multiple ':-' operators: {statement}")
+
+    import re
+    
+    missing_op_pattern = r'\)\s*[a-zA-Z_]'
+    if re.search(missing_op_pattern, content):
+        raise ErrSyntax(f"Missing operator between predicates: {statement}")
+    
 def execute(program: List[List[Term]]) -> None:
     current_file = None
     while True:

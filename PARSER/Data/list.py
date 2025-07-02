@@ -94,7 +94,7 @@ def handle_list_length(
             )
             return success, rest_goals, [new_unif] if success else []
 
-    # # length(List, N) where N is instantiated and List is variable
+    # length(List, N) where N is instantiated and List is variable
     elif isinstance(list_term, Variable) and not isinstance(
         length_term, Variable
     ):
@@ -148,7 +148,6 @@ def handle_list_permutation(
     if is_empty_list(list1) or is_empty_list(list2):
         return False, [], []
 
-    # TODO think about if this(checking if isinstance) needs to be more complex
     if (not isinstance(list1, Variable)) and (not isinstance(list2, Variable)):
         list1_extr = extract_list(list1)
         list2_extr = extract_list(list2)
@@ -198,19 +197,6 @@ def extract_list(term: Term) -> List:
                     return None
         else:
             return None
-
-
-# def handle_list_select(
-#     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
-# ) -> Tuple[bool, List[Term], Dict[str, Term]]:
-#     if len(goal.params) != 3 or goal.arity != 3:
-#         return False, rest_goals, {}
-
-#     elt, list_term, remainder = goal.params
-#     elt = substitute_term(unif, elt)
-#     list_term = substitute_term(unif, list_term)
-#     remainder = substitute_term(unif, remainder)
-
 
 def generate_list(n: int) -> Term:
     if n == 0:
