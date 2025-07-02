@@ -75,9 +75,15 @@ def solve_with_unification(
     x, *rest = goals
 
     if isinstance(x, Struct) and has_builtin(x.name):
-        success, rest, new_unif = handle_builtins(x, rest, old_unif)
+        success, new_goals, new_unifications = handle_builtins(x, rest, old_unif)
         if success:
-            return solve_with_unification(program, rest, new_unif, seq)
+            all_solutions = []
+            for unif in new_unifications:
+                success, solutions, final_seq = solve_with_unification(program, new_goals, unif, seq)
+                if success:
+                    all_solutions.extend(solutions)
+
+            return bool(all_solutions), all_solutions, seq
 
     clauses = [c for c in program if is_relevant(x, c)]
 

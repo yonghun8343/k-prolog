@@ -73,6 +73,39 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("X = [3, 4]", stdout)
         self.assertIn("False", stdout)
 
+    def test_list_length(self):
+        commands = [
+            "length([1,2,3], X).",
+            "length(L, 4)."
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("X = 3", stdout)
+        self.assertIn("L = [_, _, _, _]", stdout)
+
+    def test_list_permutation(self):
+        commands = [
+            "permutation([1,2,3], X).", # Testing permutation with second parameter being a Variable
+            ";", ";", ";", ";", ";", ";",
+            "permutation(L, [6,7]).", # Testing permutation with first parameter being a Variable
+            ";", ";",
+            "permutation([2,3,4,5], [4,3,5,2])." # Testing permutation True/False
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("X = [1, 2, 3]", stdout)
+        self.assertIn("X = [1, 3, 2]", stdout)
+        self.assertIn("X = [2, 1, 3]", stdout)
+        self.assertIn("X = [2, 3, 1]", stdout)
+        self.assertIn("X = [3, 1, 2]", stdout)
+        self.assertIn("X = [3, 2, 1]", stdout)
+        self.assertIn("L = [6, 7]", stdout)
+        self.assertIn("L = [7, 6]", stdout)
+        self.assertIn("True", stdout)
+
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

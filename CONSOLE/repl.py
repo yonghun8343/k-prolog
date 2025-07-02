@@ -192,7 +192,14 @@ def print_result(result: bool, unifications: List[dict]) -> None:
         for unification in unifications:
             for key, value in unification.items():
                 formatted_value = format_term(value)
-                print(f"{key} = {formatted_value}")
+                print(f"{key} = {formatted_value}", end="")
+                if len(unifications) > 1:
+                    if input() == ";":
+                        continue
+                    else:
+                        return
+                else:
+                    print()
 
 
 def format_term(term: Term) -> str:

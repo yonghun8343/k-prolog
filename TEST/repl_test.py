@@ -57,7 +57,8 @@ class TestKProlog(unittest.TestCase):
             "[facts].",
             "parent(john, mary).",  # Should succeed
             "parent(mary, john).",  # Should fail
-            "parent(john, X).",  # Should give multiple solutions (mary, tom)
+            "parent(john, X).",
+            ";",";",  # Should give multiple solutions (mary, tom)
             "likes(mary, pizza).",  # Should succeed
         ]
 
@@ -122,7 +123,8 @@ class TestKProlog(unittest.TestCase):
 
         commands = [
             "[conjunction].",
-            "mother(X).\n",  # Should give multiple solutions, X = mary, sue
+            "mother(X).",
+            ";", ";"  # Should give multiple solutions, X = mary, sue
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
@@ -142,7 +144,8 @@ class TestKProlog(unittest.TestCase):
 
         commands = [
             "[disjunction].",
-            "interesting(X).\n\n\n",
+            "interesting(X).",
+            ";", ";", ";"
         ]  # Should give multiple solutions, X = prolog, c, python
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
@@ -190,7 +193,8 @@ class TestKProlog(unittest.TestCase):
 
         commands = [
             "[multiple].",
-            "likes(mary, X).\n",  # Should give multiple solutions, X = pizza, pasta
+            "likes(mary, X).",
+            ";", ";"  # Should give multiple solutions, X = pizza, pasta
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)

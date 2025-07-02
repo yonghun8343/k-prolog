@@ -40,9 +40,9 @@ class PrologList(Term):
 
 def handle_list_append(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
-) -> Tuple[bool, List[Term], Dict[str, Term]]:
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 3 or goal.arity != 3:
-        return False, [], unif
+        return False, [], []
 
     l1, l2, l3 = goal.params
     l1 = substitute_term(unif, l1)
@@ -51,7 +51,7 @@ def handle_list_append(
 
     if is_empty_list(l1):
         success, new_unif = match_params([l2], [l3], unif)
-        return success, rest_goals, new_unif if success else {}
+        return success, rest_goals, [new_unif] if success else []
 
     if is_list_cons(l1):
         head1, tail1 = get_head_tail(l1)
@@ -63,20 +63,20 @@ def handle_list_append(
             success, unif1 = match_params([l3], [new_l3], unif)
             if success:
                 recursive_goal = Struct("append", 3, [tail1, l2, new_var])
-                return True, [recursive_goal] + rest_goals, unif1
+                return True, [recursive_goal] + rest_goals, [unif1]
 
         elif is_list_cons(l3):
             head3, tail3 = get_head_tail(l3)
-            success, unif1 = match_params([head1], [head3], unif)
+            success, unif3 = match_params([head1], [head3], unif)
             if success:
                 recursive_goal = Struct("append", 3, [tail1, l2, tail3])
-                return True, [recursive_goal] + rest_goals, unif1
-    return False, [], {}
+                return True, [recursive_goal] + rest_goals, [unif3]
+    return False, [], []
 
 
 def handle_list_length(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
-) -> Tuple[bool, List[Term], Dict[str, Term]]:
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 2 or goal.arity != 2:
         return False, [], {}
 
@@ -92,7 +92,7 @@ def handle_list_length(
             success, new_unif = match_params(
                 [length_term], [length_struct], unif
             )
-            return success, rest_goals, new_unif if success else {}
+            return success, rest_goals, [new_unif] if success else []
 
     # # length(List, N) where N is instantiated and List is variable
     elif isinstance(list_term, Variable) and not isinstance(
@@ -106,19 +106,13 @@ def handle_list_length(
                     success, new_unif = match_params(
                         [list_term], [generated_list], unif
                     )
-                    return success, rest_goals, new_unif if success else unif
+                    return success, rest_goals, [new_unif] if success else []
             except ValueError:
                 raise ErrList("Error generating list")
     elif isinstance(list_term, Variable) and isinstance(length_term, Variable):
-        pass
-        # i = 0
-        # while True:
-        #     generated_list = generate_list(i)
-        #     i += 1
-        #     success, new_unif = match_params([list_term], [generated_list], unif)
-        #     return success, new_unif if success else unif
+        raise ErrUninstantiated(f"{list_term}, {length_term}", "list length")
 
-    return False, {}
+    return False, [], []
 
 
 def count_list_length(list_term: Term) -> int:
@@ -139,44 +133,55 @@ def count_list_length(list_term: Term) -> int:
 
 def handle_list_permutation(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
-) -> Tuple[bool, List[Term], Dict[str, Term]]:
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 2 or goal.arity != 2:
         return False, [], {}
 
     list1, list2 = goal.params
-    print(extract_list(list1))
 
     list1 = substitute_term(unif, list1)
     list2 = substitute_term(unif, list2)
 
     if is_empty_list(list1) and is_empty_list(list2):
-        return True, rest_goals, unif
+        return True, rest_goals, [unif]
 
     if is_empty_list(list1) or is_empty_list(list2):
-        return False, [], {}
+        return False, [], []
 
-    # TODO think about if this needs to be more complex
+    # TODO think about if this(checking if isinstance) needs to be more complex
     if (not isinstance(list1, Variable)) and (not isinstance(list2, Variable)):
-        # extract list elements and check if one is a permutation of the other
         list1_extr = extract_list(list1)
         list2_extr = extract_list(list2)
 
-        permutations = list(itertools.permutations(list1_extr))
-        print("permutations is ", permutations)
-        for permutation in permutations:
-            print("type is ", type())
-            if list2_extr == permutation:
-                return True, rest_goals, unif
-        return False, [], {}
+        if list1_extr is not None and list2_extr is not None:
+            permutations = list(itertools.permutations(list1_extr))
+            for permutation in permutations:
+                if list2_extr == list(permutation):
+                    return True, rest_goals, [unif]
+        return False, [], []
 
     if isinstance(list2, Variable):
-        # extract then generate all permutation goals
-        pass
-    if isinstance(list1, Variable):
-        # extract then generate all permutation goals
-        pass
+        list1_extr = extract_list(list1)
+        all_solutions = []
+        for permutation in itertools.permutations(list1_extr):
+            perm_struct = PrologList(permutation).to_struct()
+            success, new_unif = match_params([list2], [perm_struct], unif)
+            if success:
+                all_solutions.append(new_unif)
 
-    return False, [], {}
+        return len(all_solutions) > 0, rest_goals, all_solutions
+    if isinstance(list1, Variable):
+        list2_extr = extract_list(list2)
+        all_solutions = []
+        for permutation in itertools.permutations(list2_extr):
+            perm_struct = PrologList(permutation).to_struct()
+            success, new_unif = match_params([list1], [perm_struct], unif)
+            if success:
+                all_solutions.append(new_unif)
+
+        return len(all_solutions) > 0, rest_goals, all_solutions
+        
+    return False, [], []
 
 
 def extract_list(term: Term) -> List:
