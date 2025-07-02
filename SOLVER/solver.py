@@ -4,6 +4,7 @@ from PARSER.ast import Struct, Term, Variable
 from PARSER.Data.list import handle_list_append
 
 from .builtin import handle_builtins, has_builtin
+from err import *
 from .unification import (
     extract_variable,
     match_params,
@@ -73,6 +74,18 @@ def solve_with_unification(
     if not goals:
         return True, [old_unif], seq
     x, *rest = goals
+    if isinstance(x, Struct) and x.name == "not":
+        if not len(x.params) == 1:
+            raise ErrSyntax("Not can only have 1 argument")
+        
+        inner_goal = substitute_term(old_unif, x.params[0])
+        success, solutions, final_seq = solve_with_unification(program, [inner_goal], old_unif, seq)
+        if success:
+            return False, [], final_seq
+        else:
+            return solve_with_unification(program, rest, old_unif, final_seq)
+    
+
 
     if isinstance(x, Struct) and has_builtin(x.name):
         success, new_goals, new_unifications = handle_builtins(x, rest, old_unif)

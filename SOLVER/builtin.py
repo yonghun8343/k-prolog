@@ -134,7 +134,8 @@ BUILTINS = {
     "=": handle_equals,
     "append": handle_list_append,
     "length": handle_list_length,
-    "permutation": handle_list_permutation
+    "permutation": handle_list_permutation,
+    
 }
 
 

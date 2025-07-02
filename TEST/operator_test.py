@@ -161,6 +161,20 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("True", stdout)
         self.assertIn("False", stdout)
         self.assertIn("True", stdout)
+    
+    def test_not(self):
+        commands = [
+            "not(15 is (2 + 3) * (4 - 1)).", 
+            "not(3 is 1 + 3).",
+            "not(X is 4).",
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("False", stdout)
+        self.assertIn("True", stdout)
+        self.assertIn("False", stdout)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
