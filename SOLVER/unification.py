@@ -32,7 +32,8 @@ def match_structs(
     a: Struct, b: Struct, old_unif: Dict[str, Term]
 ) -> Tuple[bool, Dict[str, Term]]:
     if a.name == b.name and a.arity == b.arity:
-        return match_params(a.params, b.params, old_unif)
+        success, result_unif = match_params(a.params, b.params, old_unif)
+        return success, result_unif
     return False, {}
 
 
@@ -76,6 +77,7 @@ def match_params(
 
         merged = old_unif.copy()
         for key, value in unif.items():
+
             merged[key] = substitute_term(old_unif, value)
         return match_params(rest_xs, rest_ys, merged)
     return False, {}

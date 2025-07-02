@@ -163,7 +163,16 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("True", stdout)
     
     def test_not(self):
+        content = """
+        red(apple).
+        blue(X) :- not(red(X)).
+        """
+
+        self.create_test_file("not.txt", content)
+
         commands = [
+            "[not].",
+            "blue(apple).",
             "not(15 is (2 + 3) * (4 - 1)).", 
             "not(3 is 1 + 3).",
             "not(X is 4).",
@@ -171,9 +180,46 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
+        self.assertIn("loaded from not.txt", stdout)
+        self.assertIn("False", stdout)
         self.assertIn("False", stdout)
         self.assertIn("True", stdout)
         self.assertIn("False", stdout)
+    
+    def test_n_queens(self):
+        content = """
+        queens(N,Qs) :- range(1,N,Ns), permutation(Ns,Qs), safe(Qs).
+
+        safe([]).
+        safe([Q|Qs]) :- safe(Qs), not(attack(Q,Qs)).
+
+        attack(X,Xs) :- attack(X,1,Xs).
+        attack(X,N,[Y|_]) :- X is Y+N; X is Y-N.
+        attack(X,N,[_|Ys]) :- N1 is N+1, attack(X,N1,Ys).
+
+        range(N,N,[N]).
+        range(M,N,[M|Ns]) :- M < N, M1 is M+1, range(M1,N,Ns).
+        """
+
+        self.create_test_file("nqueens.txt", content)
+
+        commands = [
+            "[nqueens].",
+            "queens(4, Qs).",
+            ";", ";", 
+            # "queens(6, Qs).",  # takes too long
+            # ";", ";", ";", ";"
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("loaded from nqueens.txt", stdout)
+        self.assertIn("Qs = [2, 4, 1, 3]", stdout)
+        self.assertIn("Qs = [3, 1, 4, 2]", stdout)
+        # self.assertIn("Qs = [2, 4, 6, 1, 3, 5]", stdout)
+        # self.assertIn("Qs = [3, 6, 2, 5, 1, 4]", stdout)
+        # self.assertIn("Qs = [4, 1, 5, 2, 6, 3]", stdout)
+        # self.assertIn("Qs = [5, 3, 1, 6, 4, 2]", stdout)
 
 
 if __name__ == "__main__":

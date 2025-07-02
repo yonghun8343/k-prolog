@@ -192,7 +192,7 @@ def extract_list(term: Term) -> List:
             elif term.name == ".":
                 left, term = term.params
                 if not isinstance(left, Variable):
-                    res.append(left.name)
+                    res.append(left)
                 else:
                     return None
         else:

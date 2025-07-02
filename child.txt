@@ -1,3 +1,2 @@
-random(X, L) :- X1 is X + 1, L is X1.
-range(N,N,[N]).
-range(M,N,[M|Ns]) :- M < N, M1 is M+1, range(M1,N,Ns).
+red(apple).
+blue(X) :- not(red(X)).

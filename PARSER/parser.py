@@ -164,7 +164,6 @@ def parse_struct(s: str) -> Term:
 
             return Struct("=", 2, [left_term, right_term])
     elif s.startswith("[") and s.endswith("]"):
-        parsed = parse_list(s)
         return parse_list(s)
     elif m:
         name = m.group(1)
@@ -201,8 +200,10 @@ def parse_struct(s: str) -> Term:
 
         elif s[0].isupper() or s[0] == "_":
             return Variable(s)  # TODO need variable checking
+        else:
+            result = Struct(s, 0, []) 
 
-        return Struct(s, 0, [])
+        return result
 
 
 def parse_term(s: str) -> Term:
