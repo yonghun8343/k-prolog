@@ -135,6 +135,32 @@ class TestKProlog(unittest.TestCase):
         # Should contain error messages
         self.assertTrue("ERROR" in stderr or "Error" in stderr)
 
+    def test_anonymous_variables(self):
+        content = """
+        test_anon(X, _) :- X is 3.
+        test_anon2(_, Y) :- Y = 4.
+        test_match(_, _).
+        """
+
+        self.create_test_file("anon.txt", content)
+        commands = [
+        "[anon].",
+        "test_anon(L, 5).",     
+        "test_anon(A, B).",
+        "test_anon2(3, 4).",
+        "test_anon2(4, 5).",
+        "test_match(foo, bar).",        
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("loaded from anon.txt", stdout)
+
+        self.assertIn("L = 3", stdout)
+        self.assertIn("A = 3", stdout)
+        self.assertIn("True", stdout)
+        self.assertIn("False", stdout)
+        self.assertIn("True", stdout)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

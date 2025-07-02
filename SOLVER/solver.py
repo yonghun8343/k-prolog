@@ -108,5 +108,4 @@ def solve(
     program: List[List[Term]], goals: List[Term]
 ) -> Tuple[bool, List[Dict[str, Term]]]:
     result, unifs, _ = solve_with_unification(program, goals, {}, 0)
-    final_unifs = [extract_variable(get_variables(goals), u) for u in unifs]
     return result, [extract_variable(get_variables(goals), u) for u in unifs]

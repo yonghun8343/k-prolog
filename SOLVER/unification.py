@@ -3,7 +3,7 @@ from PARSER.ast import Struct, Term, Variable
 
 
 def extract_variable(vars: List[str], unif: Dict[str, Term]) -> Dict[str, Term]:
-    return {v: unif[v] for v in vars if v in unif}
+    return {v: unif[v] for v in vars if v in unif and not v.startswith('_G')}
 
 
 def substitute_term(unification: Dict[str, Term], term: Term) -> Term:
@@ -45,24 +45,23 @@ def match_params(
         return False, {}
     if ys and isinstance(ys[0], Variable):
         y = ys[0].name
-        if y in old_unif:
-            return match_params([old_unif[y]] + xs[1:], ys[1:], old_unif)
+        if y.startswith('_G'):
+            return match_params(xs[1:], ys[1:], old_unif)
+        elif y in old_unif:
+            bound_value = substitute_term(old_unif, ys[0])
+            return match_params(xs, [bound_value] + ys[1:], old_unif)
         else:
             sub = {y: xs[0]}
             new_xs = substitute(sub, xs[1:])
             new_ys = substitute(sub, ys[1:])
             new_unif = substitute_unification(sub, old_unif)
             new_unif[y] = xs[0]
-        return match_params(new_xs, new_ys, new_unif)
+            return match_params(new_xs, new_ys, new_unif)
     if xs and isinstance(xs[0], Variable):
         x = xs[0].name
         if x in old_unif:
-            bound_value = old_unif[x]
-            success, new_unif = match_params([bound_value], [ys[0]], old_unif)
-            if success:
-                return match_params(xs[1:], ys[1:], new_unif)
-            else:
-                return False, {}
+            substituted_value = substitute_term(old_unif, xs[0])
+            return match_params([substituted_value] + xs[1:], ys, old_unif)
         else:
             sub = {x: ys[0]}
             new_xs = substitute(sub, xs[1:])
@@ -75,7 +74,7 @@ def match_params(
         rest_xs = substitute(unif, xs[1:])
         rest_ys = substitute(unif, ys[1:])
 
-        merged = {**old_unif, **unif}
+        merged = old_unif.copy()
         for key, value in unif.items():
             merged[key] = substitute_term(old_unif, value)
         return match_params(rest_xs, rest_ys, merged)

@@ -113,11 +113,9 @@ def parse_file_multiline(filepath: str) -> List[List[Term]]:
         except Exception as e:
             raise ErrSyntax(f"Error parsing statement '{statement}': {e}")
 
-    print("clauses is ", clauses)
     return clauses
 
 def validate_clause_syntax(statement: str) -> None:
-    """Simple validation for common syntax errors"""
     statement = statement.strip()
     if not statement or not statement.endswith('.'):
         return

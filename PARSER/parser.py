@@ -208,10 +208,17 @@ def parse_struct(s: str) -> Term:
 def parse_term(s: str) -> Term:
     s = s.strip()
     if s and (s[0].isupper() or s[0] == "_"):
+        if s == "_":
+            return Variable(f"_G{generate_unique_id()}")
         return Variable(s)
     return parse_struct(s)
 
-
+def generate_unique_id() -> int:
+    if not hasattr(generate_unique_id, "counter"):
+        generate_unique_id.counter = 0
+    generate_unique_id.counter += 1
+    return generate_unique_id.counter
+    
 def flatten_semicolons(head: Term, tail_str: str) -> List[List[Term]]:
     predicates = []
     tails = [parse_struct(part.strip()) for part in tail_str.strip().split(";")]
