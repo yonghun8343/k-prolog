@@ -99,7 +99,6 @@ def parse_precedence(
     return left, pos
 
 def parse_arithmetic_expression(expr: str) -> Term:
-    print("in here ")
     operators = {
         "*": (400, True),
         "/": (400, True),
@@ -165,7 +164,6 @@ def parse_struct(s: str) -> Term:
     for op in arithmetic_ops:
         op_pattern = re.escape(op) + r"\s*\("
         if re.match(op_pattern, s):
-            print("here2")
             try:
                 return parse_arithmetic_expression(s)
             except ErrProlog:

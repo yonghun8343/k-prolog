@@ -5,7 +5,7 @@ from PARSER.parser import parse_struct
 from PARSER.Data.list import handle_list_append, handle_list_length, handle_list_permutation
 from UTIL.str_util import format_term, struct_to_infix
 
-from .unification import match_params, substitute_term
+from .unification import match_params, substitute_term, extract_variable
 from err import *
 
 
@@ -132,6 +132,10 @@ def handle_write( # need to take care of string
         return False, [], []
 
     writeStr = str(goal.params[0])
+    new_unif = extract_variable([writeStr], unif)
+    if new_unif:
+        print(new_unif.get(writeStr))
+        return True, rest_goals, [new_unif]
 
     if writeStr.startswith("\"") and writeStr.endswith("\""):
         print(writeStr[1:-1])
@@ -151,7 +155,44 @@ def handle_write( # need to take care of string
     print(struct_to_infix(struct_form))
     return True, rest_goals, [unif]
   
-  
+def handle_read(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 1:
+        return False, rest_goals, []
+
+    var = goal.params[0]
+    
+    if not isinstance(var, Variable):
+        return False, rest_goals, []
+
+    lines = []
+    while True:
+        try:
+            line = input("|: ")
+            lines.append(line)
+            if line.strip().endswith("."):
+                break
+        except EOFError:
+            return False, rest_goals, []
+
+    full_input = " ".join(line.strip() for line in lines)
+    if full_input.endswith('.'):
+        full_input = full_input[:-1]
+    
+    full_input = full_input.strip()
+    
+    if not full_input:
+        return False, rest_goals, []
+    
+    input_term = Struct(full_input, 0, [])
+    
+    success, new_unif = match_params([var], [input_term], unif)
+    
+    if success:
+        return True, rest_goals, [new_unif]
+    else:
+        return False, rest_goals, []
 
 BUILTINS = {
     "is": handle_is,
@@ -165,7 +206,8 @@ BUILTINS = {
     "append": handle_list_append,
     "length": handle_list_length,
     "permutation": handle_list_permutation,
-    "write": handle_write
+    "write": handle_write,
+    "read": handle_read,
 }
 
 

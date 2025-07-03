@@ -1,1 +1,1 @@
-test_fact(modified).
+hello :- read(X), write(X).

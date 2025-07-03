@@ -204,18 +204,26 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("X = pasta", stdout)
     
     def test_write(self):
+        content = """hello :- read(X), write(X)."""
+        self.create_test_file("content.txt", content)
 
         commands = [
-            "write(\"hello\").",
-            "write(helllo).",
-            "write(+(2, 3))."
+            "[content].",
+            "read(X).",
+            "hello.",
+            "read(x).",
+            "write(+(2, 3)).",
+            "hello.",
+            "whatever."
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
+        self.assertIn("loaded from content.txt", stdout)
         self.assertIn("hello", stdout)
-        self.assertIn("helllo", stdout)
+        self.assertIn("False", stdout)
         self.assertIn("2 + 3", stdout)
+        self.assertIn("whatever", stdout)
 
 
 if __name__ == "__main__":
