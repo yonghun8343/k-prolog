@@ -221,6 +221,22 @@ class TestKProlog(unittest.TestCase):
         # self.assertIn("Qs = [4, 1, 5, 2, 6, 3]", stdout)
         # self.assertIn("Qs = [5, 3, 1, 6, 4, 2]", stdout)
 
+    def test_operator_orders(self):
+        commands = [
+            "X is +(2,3).",
+            "Y is +(*(2, 3), 4 + 1).",
+            "Z is /(+(6, 4), mod(7, 3)).", 
+            "A is +(+(1, 2), *(/(8, 4), 3)).",
+            "B is *(+(2, 3), (4 + mod(10, 3))).",
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("X = 5", stdout)
+        self.assertIn("Y = 11", stdout)
+        self.assertIn("Z = 10", stdout)
+        self.assertIn("A = 9", stdout)
+        self.assertIn("B = 25", stdout)
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

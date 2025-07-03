@@ -26,13 +26,31 @@ def split_args(s: str) -> List[str]:
         parts.append(buf.strip())
     return parts
 
-
 def parse_primary(tokens: List[str], pos: int, operators) -> Tuple[Term, int]:
     if pos >= len(tokens):
         raise ErrSyntax("Unexpected end of expression")
 
     token = tokens[pos]
+    
+    if (token in operators and 
+        pos + 1 < len(tokens) and tokens[pos + 1] == "("):
 
+        op_name = token
+        pos += 2 
+        
+        args = []
+        while pos < len(tokens) and tokens[pos] != ")":
+            if tokens[pos] == ",":
+                pos += 1
+                continue
+            arg, pos = parse_precedence(tokens, pos, 1000, operators)
+            args.append(arg)
+        
+        if pos >= len(tokens) or tokens[pos] != ")":
+            raise ErrParenthesis("closing")
+        
+        return Struct(op_name, len(args), args), pos + 1
+    
     if token == "(":
         expr, pos = parse_precedence(tokens, pos + 1, 1000, operators)
         if pos >= len(tokens) or tokens[pos] != ")":
@@ -80,17 +98,16 @@ def parse_precedence(
         left = Struct(operator, 2, [left, right])
     return left, pos
 
-
 def parse_arithmetic_expression(expr: str) -> Term:
-    operators = {  # this ds might need to become flexible
-        "*": (400, True),  # True is left, False is right
+    operators = {
+        "*": (400, True),
         "/": (400, True),
         "//": (400, True),
         "mod": (400, True),
         "+": (500, True),
         "-": (500, True),
         "=:=": (700, False),
-        "=\=": (700, False),
+        "=\\=": (700, False),
         "<": (700, False),
         ">": (700, False),
         ">=": (700, False),
@@ -100,16 +117,19 @@ def parse_arithmetic_expression(expr: str) -> Term:
     }
 
     expr = expr.strip()
-    pattern = r"(=:=|=\\=|>=|=<|//|mod|is|\d+\.?\d*|[A-Za-z_][A-Za-z0-9_]*|[+\-*/=<>()])"
+    
+    # Enhanced tokenization to handle both infix and structure notation
+    pattern = r"(=:=|=\\=|>=|=<|//|mod|is|\d+\.?\d*|[A-Za-z_][A-Za-z0-9_]*|[+\-*/=<>(),])"
     tokens = re.findall(pattern, expr)
     tokenized = [t for t in tokens if t.strip()]
+    
     if not tokenized:
         raise ErrInvalidTerm(expr)
 
-    result, pos = parse_precedence(tokens, 0, 1000, operators)
+    result, pos = parse_precedence(tokenized, 0, 1000, operators)
 
     if pos < len(tokens):
-        raise ErrInvalidTerm(tokens[pos:])
+        raise ErrInvalidTerm(f"Unexpected tokens: {tokenized[pos:]}")
 
     return result
 
@@ -140,6 +160,16 @@ def parse_list(s: str) -> Term:
 
 def parse_struct(s: str) -> Term:
     s = s.strip()
+    arithmetic_ops = ["+", "-", "*", "/", "//", "mod", "=:=", "=\\=", ">=", "=<", ">", "<", "is"]
+    for op in arithmetic_ops:
+        op_pattern = re.escape(op) + r"\s*\("
+        if re.match(op_pattern, s):
+            print("here2")
+            try:
+                return parse_arithmetic_expression(s)
+            except ErrProlog:
+                # If arithmetic parsing fails, continue with normal struct parsing
+                break
     m = re.match(r"^([a-z0-9][a-zA-Z0-9_]*)\s*\((.*)\)$", s)
     if (
         "=" in s
@@ -192,6 +222,7 @@ def parse_struct(s: str) -> Term:
                 "=\=",
             ]
         ):
+                
             try:
                 result = parse_arithmetic_expression(s)
                 return result
@@ -202,8 +233,7 @@ def parse_struct(s: str) -> Term:
             return Variable(s)  # TODO need variable checking
         else:
             result = Struct(s, 0, []) 
-
-        return result
+            return result
 
 
 def parse_term(s: str) -> Term:
