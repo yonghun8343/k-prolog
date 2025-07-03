@@ -266,7 +266,6 @@ def parse_line(line: str) -> List[Term]:
     body = stripped[:-1]
     if ":-" in body:
         head_str, tail_str = body.split(":-", 1)
-
         head = parse_struct(head_str.strip())
 
         if ";" in tail_str:

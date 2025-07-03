@@ -237,6 +237,76 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("Z = 10", stdout)
         self.assertIn("A = 9", stdout)
         self.assertIn("B = 25", stdout)
+    
+    def test_cut_operator(self):
+        content = """max(X, Y, X) :- X >= Y, !.
+                max(X, Y, Y).
+
+                first([H|_], H) :- !.
+                first([_|T], X) :- first(T, X).
+
+                choice(a) :- !.
+                choice(b).
+                choice(c).
+
+                test_cut(1) :- !, fail.
+                test_cut(2).
+
+                member_cut(X, [X|_]) :- !.
+                member_cut(X, [_|T]) :- member_cut(X, T)."""
+        
+        self.create_test_file("cut_test.txt", content)
+        
+        # Should only give one answer
+        commands1 = [
+            "[cut_test].",
+            "max(5, 3, Z).", ";" # Should succeed with Z = 5, no backtracking
+        ]
+        stdout1, stderr1, returncode1 = self.run_prolog_commands(commands1)
+        self.assertIn("Z = 5", stdout1)
+
+        # Should not show multiple solutions due to cut
+        commands2 = [
+            "[cut_test].", 
+            "max(2, 7, Z)."
+        ]
+        stdout2, stderr2, returncode2 = self.run_prolog_commands(commands2)
+        self.assertIn("Z = 7", stdout2)
+        
+
+        commands3 = [
+            "[cut_test].",
+            "choice(X).", ";", ";", ";"  # Should only give X = a due to cut
+        ]
+        stdout3, stderr3, returncode3 = self.run_prolog_commands(commands3)
+        self.assertIn("X = a", stdout3)
+        self.assertNotIn("X = b", stdout3)  # Cut should prevent this
+        self.assertNotIn("X = c", stdout3)  # Cut should prevent this
+
+    def test_cut_with_backtracking(self):
+        content = """p(X) :- q(X), !, r(X).
+                    p(X) :- s(X).
+
+                    q(1).
+                    q(2).
+                    r(1).
+                    s(3)."""
+        
+        self.create_test_file("backtrack_test.txt", content)
+        
+        commands = [
+            "[backtrack_test].",
+            "p(1).",  # Should succeed: q(1) succeeds, cut, r(1) succeeds
+            "p(2).",  # Should fail: q(2) succeeds, cut, r(2) fails, can't try s(2)
+            "p(3).",  # Should succeed: q(3) fails, tries second clause s(3)
+        ]
+        
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+        
+        self.assertIn("True", stdout)
+        self.assertIn("False", stdout) 
+        self.assertIn("True", stdout)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

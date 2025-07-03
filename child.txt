@@ -1,1 +1,10 @@
-hello :- read(X), write(X).
+p(a).
+p(b) :- !.
+p(c).
+
+test(X) :- a(X), !, b(X).
+test(X) :- c(X).
+a(y).
+b(y).
+c(y).
+

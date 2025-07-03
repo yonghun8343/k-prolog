@@ -207,7 +207,7 @@ BUILTINS = {
     "length": handle_list_length,
     "permutation": handle_list_permutation,
     "write": handle_write,
-    "read": handle_read,
+    "read": handle_read
 }
 
 

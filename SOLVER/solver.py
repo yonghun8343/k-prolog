@@ -74,6 +74,19 @@ def solve_with_unification(
     if not goals:
         return True, [old_unif], seq
     x, *rest = goals
+
+    if isinstance(x, Struct) and x.name == "!" and x.arity == 0:
+        success, solutions, final_seq = solve_with_unification(program, rest, old_unif, seq)
+        if success:
+            marked_solutions = []
+            for solution in solutions:
+                marked_solution = solution.copy()
+                marked_solution["__CUT_ENCOUNTERED__"] = True
+                marked_solutions.append(marked_solution)
+            return True, marked_solutions, final_seq
+        else: 
+            return False, [], final_seq
+
     if isinstance(x, Struct) and x.name == "not":
         if not len(x.params) == 1:
             raise ErrSyntax("Not can only have 1 argument")
@@ -84,8 +97,6 @@ def solve_with_unification(
             return False, [], final_seq
         else:
             return solve_with_unification(program, rest, old_unif, final_seq)
-    
-
 
     if isinstance(x, Struct) and has_builtin(x.name):
         success, new_goals, new_unifications = handle_builtins(x, rest, old_unif)
@@ -95,25 +106,35 @@ def solve_with_unification(
                 success, solutions, final_seq = solve_with_unification(program, new_goals, unif, seq)
                 if success:
                     all_solutions.extend(solutions)
+                    if any("__CUT_ENCOUNTERED__" in solution for solution in solutions):
+                        clean_solutions = [{k: v for k, v in sol.items() if k != "__CUT_ENCOUNTERED__"} 
+                                         for sol in all_solutions]
+                        return True, clean_solutions, final_seq
 
             return bool(all_solutions), all_solutions, seq
 
     clauses = [c for c in program if is_relevant(x, c)]
-
     all_solutions = []
+    
     for clause in clauses:
         renamed_clause, new_seq = init_rules(clause, seq)
         seq = new_seq
-        is_match, new_goals, unif = match_predicate(
-            x, rest, old_unif, renamed_clause
-        )
+        is_match, new_goals, unif = match_predicate(x, rest, old_unif, renamed_clause)
+        
         if is_match:
-            success, solutions, final_seq = solve_with_unification(
-                program, new_goals, unif, seq
-            )
+            success, solutions, final_seq = solve_with_unification(program, new_goals, unif, seq)
             seq = final_seq
+            
             if success:
                 all_solutions.extend(solutions)
+                
+                if any("__CUT_ENCOUNTERED__" in solution for solution in solutions):
+                    clean_solutions = []
+                    for solution in all_solutions:
+                        clean_sol = {k: v for k, v in solution.items() if k != "__CUT_ENCOUNTERED__"}
+                        clean_solutions.append(clean_sol)
+                    return True, clean_solutions, final_seq
+    
     return bool(all_solutions), all_solutions, seq
 
 
