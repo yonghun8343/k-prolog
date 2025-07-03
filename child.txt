@@ -1,2 +1,1 @@
-red(apple).
-blue(X) :- not(red(X)).
+test_fact(modified).

@@ -99,6 +99,7 @@ def parse_precedence(
     return left, pos
 
 def parse_arithmetic_expression(expr: str) -> Term:
+    print("in here ")
     operators = {
         "*": (400, True),
         "/": (400, True),

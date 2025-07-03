@@ -168,7 +168,7 @@ class TestKProlog(unittest.TestCase):
         stdout1, stderr1, returncode1 = self.run_prolog_commands(commands)
 
         # Modify the file
-        content2 = "test_fact(modified)."
+        content2 = "test_fact(new)."
         with open(filepath, "w") as f:
             f.write(content2)
 
@@ -181,7 +181,7 @@ class TestKProlog(unittest.TestCase):
         stdout2, stderr2, returncode2 = self.run_prolog_commands(commands2)
 
         self.assertIn("original", stdout1)
-        self.assertIn("modified", stdout2)
+        self.assertIn("new", stdout2)
 
     def test_multiple_solutions(self):
         content = """likes(mary, pizza).
@@ -202,6 +202,20 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("loaded from multiple.txt", stdout)
         self.assertIn("X = pizza", stdout)
         self.assertIn("X = pasta", stdout)
+    
+    def test_write(self):
+
+        commands = [
+            "write(\"hello\").",
+            "write(helllo).",
+            "write(+(2, 3))."
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("hello", stdout)
+        self.assertIn("helllo", stdout)
+        self.assertIn("2 + 3", stdout)
 
 
 if __name__ == "__main__":
