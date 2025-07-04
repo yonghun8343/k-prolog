@@ -16,7 +16,7 @@ def show_exit_trace(goal, depth):
     print(f"Exit: ({depth}) {goal} ? ", end="")
 
 
-def handle_trace_input(debug_state: DebugState):
+def handle_trace_input(debug_state: DebugState, last_goal):
     while True:
         try:
             cmd = input("").strip().lower()
@@ -40,5 +40,5 @@ def handle_trace_input(debug_state: DebugState):
                 print(
                     f"Call: ({debug_state.call_depth}) {last_goal} ? ", end=""
                 )
-        except EOFError:
-            raise DebugAbort()
+        except EOFError as e:
+            raise DebugAbort() from e

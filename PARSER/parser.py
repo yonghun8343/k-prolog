@@ -1,9 +1,16 @@
 import re
-from typing import List, Tuple, Dict
+from typing import Dict, List, Tuple
 
+from err import (
+    ErrCommandFormat,
+    ErrInvalidTerm,
+    ErrParenthesis,
+    ErrProlog,
+    ErrSyntax,
+    handle_error,
+)
 from PARSER.ast import Struct, Term, Variable
 from PARSER.Data.list import PrologList
-from err import *
 
 
 def split_args(s: str) -> List[str]:

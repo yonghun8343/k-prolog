@@ -1,11 +1,16 @@
 from typing import List
 
-from PARSER.ast import Term, Struct, Variable
-from PARSER.parser import parse_file, parse_string
+from err import (
+    ErrFileNotFound,
+    ErrInvalidCommand,
+    ErrProlog,
+    ErrSyntax,
+    handle_error,
+)
+from PARSER.ast import Term
+from PARSER.parser import parse_string
 from SOLVER.solver import solve
 from UTIL.str_util import format_term
-
-from err import *
 
 
 class Command:
@@ -51,11 +56,11 @@ def read_multi_line_input() -> str:
             if line.strip().endswith("."):
                 break
 
-        except EOFError:
+        except EOFError as e:
             if lines:
-                raise ErrSyntax("Incomplete input - missing period")
+                raise ErrSyntax("Incomplete input - missing period") from e
             else:
-                raise EOFError
+                raise e
 
     full_input = " ".join(line.strip() for line in lines)
     return full_input
@@ -112,7 +117,7 @@ def parse_file_multiline(filepath: str) -> List[List[Term]]:
             parsed = parse_string(statement)
             clauses.extend(parsed)
         except Exception as e:
-            raise ErrSyntax(f"Error parsing statement '{statement}': {e}")
+            raise ErrSyntax(f"Error parsing statement '{statement}': {e}") from e
 
     return clauses
 

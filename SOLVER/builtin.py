@@ -1,16 +1,25 @@
 from typing import Dict, List, Tuple
 
+from err import (
+    ErrArithmetic,
+    ErrDivisionByZero,
+    ErrNotNumber,
+    ErrProlog,
+    ErrSyntax,
+    ErrUninstantiated,
+    ErrUnknownOperator,
+    handle_error,
+)
 from PARSER.ast import Struct, Term, Variable
-from PARSER.parser import parse_struct
 from PARSER.Data.list import (
     handle_list_append,
     handle_list_length,
     handle_list_permutation,
 )
-from UTIL.str_util import format_term, struct_to_infix
+from PARSER.parser import parse_struct
+from UTIL.str_util import struct_to_infix
 
-from .unification import match_params, substitute_term, extract_variable
-from err import *
+from .unification import extract_variable, match_params, substitute_term
 
 
 # TODO should builtins be a class?
@@ -48,8 +57,8 @@ def evaluate_arithmetic(expr: Term, unif: Dict[str, Term]) -> float:
         if expr.arity == 0:
             try:
                 return float(expr.name)
-            except ValueError:
-                raise ErrNotNumber(expr.name)
+            except ValueError as e:
+                raise ErrNotNumber(expr.name) from e
         elif expr.arity == 2:
             left_val = evaluate_arithmetic(expr.params[0], unif)
             right_val = evaluate_arithmetic(expr.params[1], unif)

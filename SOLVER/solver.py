@@ -1,10 +1,9 @@
 from typing import Dict, List, Tuple
 
+from err import ErrSyntax
 from PARSER.ast import Struct, Term, Variable
-from PARSER.Data.list import handle_list_append
 
 from .builtin import handle_builtins, has_builtin
-from err import *
 from .unification import (
     extract_variable,
     match_params,

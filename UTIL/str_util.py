@@ -1,5 +1,6 @@
-from PARSER.ast import Term, Struct, Variable
 from typing import List
+
+from PARSER.ast import Struct, Term, Variable
 
 
 def format_term(term: Term) -> str:
