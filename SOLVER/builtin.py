@@ -210,6 +210,47 @@ def handle_read(
         return False, rest_goals, []
 
 
+def handle_atomic(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 1:
+        return False, [], []
+
+    param = goal.params[0]
+    if (
+        isinstance(param, Variable)
+        or param.name[0].isupper()
+        or param.name[0] == "_"
+        or param.arity != 0
+    ):
+        return False, [], []
+
+    return True, rest_goals, [unif]
+
+
+def handle_integer(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 1 or goal.params[0].arity != 0:
+        return False, [], []
+
+    try:
+        int(goal.params[0].name)
+        return True, rest_goals, [unif]
+    except ValueError:
+        return False, [], []
+
+
+def handle_nl(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 0:
+        return False, [], []
+
+    print()
+    return True, rest_goals, [unif]
+
+
 BUILTINS = {
     "is": handle_is,
     ">": handle_comparison,
@@ -224,6 +265,9 @@ BUILTINS = {
     "permutation": handle_list_permutation,
     "write": handle_write,
     "read": handle_read,
+    "atomic": handle_atomic,
+    "integer": handle_integer,
+    "nl": handle_nl,
 }
 
 

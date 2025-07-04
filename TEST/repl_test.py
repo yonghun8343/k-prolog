@@ -208,7 +208,7 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("X = pizza", stdout)
         self.assertIn("X = pasta", stdout)
 
-    def test_write(self):
+    def test_read_write(self):
         content = """hello :- read(X), write(X)."""
         self.create_test_file("content.txt", content)
 
@@ -229,6 +229,35 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("False", stdout)
         self.assertIn("2 + 3", stdout)
         self.assertIn("whatever", stdout)
+
+    def test_atomic(self):
+        commands = [
+            "atomic(random).",
+            "atomic(X).",
+            "atomic(3)",
+            "atomic(interesting(prolog)).",
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("True", stdout)
+        self.assertIn("False", stdout)
+        self.assertIn("True", stdout)
+        self.assertIn("False", stdout)
+
+    def test_integer(self):
+        commands = [
+            "integer(3).",
+            "integer(random).",
+            "integer(4.5)integer(3.0).",
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("True", stdout)
+        self.assertIn("False", stdout)
+        self.assertIn("False", stdout)
+        self.assertIn("False", stdout)
 
 
 if __name__ == "__main__":

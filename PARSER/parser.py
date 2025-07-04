@@ -314,8 +314,3 @@ def parse_string(s: str) -> List[List[Term]]:
         else:
             parsed.append(parsed_line)
     return parsed
-
-
-def parse_file(path: str) -> List[List[Term]]:
-    with open(path, "r") as f:
-        return parse_string(f.read())

@@ -81,24 +81,22 @@ def solve_with_unification(
         return True, [old_unif], seq
     x, *rest = goals
 
-    # for trace mode
     if debug_state.trace_mode:
         show_call_trace(x, debug_state.call_depth)
         handle_trace_input(debug_state)
 
     debug_state.call_depth += 1
 
-    try:  # Add try/finally to ensure call_depth is decremented
+    try:
         if isinstance(x, Struct) and x.name == "!" and x.arity == 0:
             success, solutions, final_seq = solve_with_unification(
                 program,
                 rest,
                 old_unif,
                 seq,
-                debug_state,  # Add debug_state
+                debug_state,
             )
             if success:
-                # Add exit trace before returning
                 if debug_state.trace_mode:
                     show_exit_trace(x, debug_state.call_depth - 1)
                     handle_trace_input()
@@ -122,12 +120,11 @@ def solve_with_unification(
                 [inner_goal],
                 old_unif,
                 seq,
-                debug_state,  # Add debug_state
+                debug_state,
             )
             if success:
                 return False, [], final_seq
             else:
-                # Add exit trace for successful not
                 if debug_state.trace_mode:
                     show_exit_trace(x, debug_state.call_depth - 1)
                     handle_trace_input()
@@ -216,7 +213,7 @@ def solve_with_unification(
         return bool(all_solutions), all_solutions, seq
 
     finally:
-        debug_state.call_depth -= 1  # Always decrement depth
+        debug_state.call_depth -= 1
 
 
 def solve(

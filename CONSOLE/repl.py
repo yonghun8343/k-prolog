@@ -109,6 +109,11 @@ def parse_file_multiline(filepath: str) -> List[List[Term]]:
     i = 0
     while i < len(content):
         char = content[i]
+        if char == "%":
+            while i < len(content) and content[i] != "\n":
+                i += 1
+            continue
+
         current_statement += char
 
         if char == ".":
@@ -179,6 +184,7 @@ def execute(program: List[List[Term]]) -> None:
             try:
                 current_file = cmd.path
                 program = parse_file_multiline(cmd.path)
+                print(program)
             except ErrProlog as e:
                 handle_error(e, "parsing")
             except FileNotFoundError:
