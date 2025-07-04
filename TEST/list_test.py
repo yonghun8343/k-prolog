@@ -74,10 +74,7 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("False", stdout)
 
     def test_list_length(self):
-        commands = [
-            "length([1,2,3], X).",
-            "length(L, 4)."
-        ]
+        commands = ["length([1,2,3], X).", "length(L, 4)."]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
@@ -86,11 +83,17 @@ class TestKProlog(unittest.TestCase):
 
     def test_list_permutation(self):
         commands = [
-            "permutation([1,2,3], X).", # Testing permutation with second parameter being a Variable
-            ";", ";", ";", ";", ";", ";",
-            "permutation(L, [6,7]).", # Testing permutation with first parameter being a Variable
-            ";", ";",
-            "permutation([2,3,4,5], [4,3,5,2])." # Testing permutation True/False
+            "permutation([1,2,3], X).",  # Testing permutation with second parameter being a Variable
+            ";",
+            ";",
+            ";",
+            ";",
+            ";",
+            ";",
+            "permutation(L, [6,7]).",  # Testing permutation with first parameter being a Variable
+            ";",
+            ";",
+            "permutation([2,3,4,5], [4,3,5,2]).",  # Testing permutation True/False
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
@@ -106,7 +109,7 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("True", stdout)
 
     # def test_n_queens(self):
-        
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

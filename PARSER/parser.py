@@ -26,18 +26,17 @@ def split_args(s: str) -> List[str]:
         parts.append(buf.strip())
     return parts
 
+
 def parse_primary(tokens: List[str], pos: int, operators) -> Tuple[Term, int]:
     if pos >= len(tokens):
         raise ErrSyntax("Unexpected end of expression")
 
     token = tokens[pos]
-    
-    if (token in operators and 
-        pos + 1 < len(tokens) and tokens[pos + 1] == "("):
 
+    if token in operators and pos + 1 < len(tokens) and tokens[pos + 1] == "(":
         op_name = token
-        pos += 2 
-        
+        pos += 2
+
         args = []
         while pos < len(tokens) and tokens[pos] != ")":
             if tokens[pos] == ",":
@@ -45,12 +44,12 @@ def parse_primary(tokens: List[str], pos: int, operators) -> Tuple[Term, int]:
                 continue
             arg, pos = parse_precedence(tokens, pos, 1000, operators)
             args.append(arg)
-        
+
         if pos >= len(tokens) or tokens[pos] != ")":
             raise ErrParenthesis("closing")
-        
+
         return Struct(op_name, len(args), args), pos + 1
-    
+
     if token == "(":
         expr, pos = parse_precedence(tokens, pos + 1, 1000, operators)
         if pos >= len(tokens) or tokens[pos] != ")":
@@ -98,6 +97,7 @@ def parse_precedence(
         left = Struct(operator, 2, [left, right])
     return left, pos
 
+
 def parse_arithmetic_expression(expr: str) -> Term:
     operators = {
         "*": (400, True),
@@ -117,12 +117,12 @@ def parse_arithmetic_expression(expr: str) -> Term:
     }
 
     expr = expr.strip()
-    
+
     # Enhanced tokenization to handle both infix and structure notation
     pattern = r"(=:=|=\\=|>=|=<|//|mod|is|\d+\.?\d*|[A-Za-z_][A-Za-z0-9_]*|[+\-*/=<>(),])"
     tokens = re.findall(pattern, expr)
     tokenized = [t for t in tokens if t.strip()]
-    
+
     if not tokenized:
         raise ErrInvalidTerm(expr)
 
@@ -160,7 +160,21 @@ def parse_list(s: str) -> Term:
 
 def parse_struct(s: str) -> Term:
     s = s.strip()
-    arithmetic_ops = ["+", "-", "*", "/", "//", "mod", "=:=", "=\\=", ">=", "=<", ">", "<", "is"]
+    arithmetic_ops = [
+        "+",
+        "-",
+        "*",
+        "/",
+        "//",
+        "mod",
+        "=:=",
+        "=\\=",
+        ">=",
+        "=<",
+        ">",
+        "<",
+        "is",
+    ]
     for op in arithmetic_ops:
         op_pattern = re.escape(op) + r"\s*\("
         if re.match(op_pattern, s):
@@ -221,7 +235,6 @@ def parse_struct(s: str) -> Term:
                 "=\=",
             ]
         ):
-                
             try:
                 result = parse_arithmetic_expression(s)
                 return result
@@ -231,7 +244,7 @@ def parse_struct(s: str) -> Term:
         elif s[0].isupper() or s[0] == "_":
             return Variable(s)  # TODO need variable checking
         else:
-            result = Struct(s, 0, []) 
+            result = Struct(s, 0, [])
             return result
 
 
@@ -243,12 +256,14 @@ def parse_term(s: str) -> Term:
         return Variable(s)
     return parse_struct(s)
 
+
 def generate_unique_id() -> int:
     if not hasattr(generate_unique_id, "counter"):
         generate_unique_id.counter = 0
     generate_unique_id.counter += 1
     return generate_unique_id.counter
-    
+
+
 def flatten_semicolons(head: Term, tail_str: str) -> List[List[Term]]:
     predicates = []
     tails = [parse_struct(part.strip()) for part in tail_str.strip().split(";")]

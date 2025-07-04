@@ -3,7 +3,7 @@ from PARSER.ast import Struct, Term, Variable
 
 
 def extract_variable(vars: List[str], unif: Dict[str, Term]) -> Dict[str, Term]:
-    return {v: unif[v] for v in vars if v in unif and not v.startswith('_G')}
+    return {v: unif[v] for v in vars if v in unif and not v.startswith("_G")}
 
 
 def substitute_term(unification: Dict[str, Term], term: Term) -> Term:
@@ -46,7 +46,7 @@ def match_params(
         return False, {}
     if ys and isinstance(ys[0], Variable):
         y = ys[0].name
-        if y.startswith('_G'):
+        if y.startswith("_G"):
             return match_params(xs[1:], ys[1:], old_unif)
         elif y in old_unif:
             bound_value = substitute_term(old_unif, ys[0])
@@ -77,7 +77,6 @@ def match_params(
 
         merged = old_unif.copy()
         for key, value in unif.items():
-
             merged[key] = substitute_term(old_unif, value)
         return match_params(rest_xs, rest_ys, merged)
     return False, {}

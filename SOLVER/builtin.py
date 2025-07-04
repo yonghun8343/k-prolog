@@ -2,7 +2,11 @@ from typing import Dict, List, Tuple
 
 from PARSER.ast import Struct, Term, Variable
 from PARSER.parser import parse_struct
-from PARSER.Data.list import handle_list_append, handle_list_length, handle_list_permutation
+from PARSER.Data.list import (
+    handle_list_append,
+    handle_list_length,
+    handle_list_permutation,
+)
 from UTIL.str_util import format_term, struct_to_infix
 
 from .unification import match_params, substitute_term, extract_variable
@@ -125,8 +129,9 @@ def handle_equals(
     success, new_unif = match_params([left], [right], unif)
     return success, rest_goals, [new_unif] if success else []
 
-def handle_write( # need to take care of string
-   goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+
+def handle_write(  # need to take care of string
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 1:
         return False, [], []
@@ -137,24 +142,25 @@ def handle_write( # need to take care of string
         print(new_unif.get(writeStr))
         return True, rest_goals, [new_unif]
 
-    if writeStr.startswith("\"") and writeStr.endswith("\""):
+    if writeStr.startswith('"') and writeStr.endswith('"'):
         print(writeStr[1:-1])
         return True, rest_goals, [unif]
 
-    if writeStr.startswith("\"") or writeStr.endswith("\""):
+    if writeStr.startswith('"') or writeStr.endswith('"'):
         raise ErrSyntax(f"Unable to parse: {writeStr}")
 
-    if writeStr.startswith("\'") and writeStr.endswith("\'"):
+    if writeStr.startswith("'") and writeStr.endswith("'"):
         print(writeStr[1:-1])
         return True, rest_goals, [unif]
 
-    if writeStr.startswith("\'") or writeStr.endswith("\'"):
+    if writeStr.startswith("'") or writeStr.endswith("'"):
         raise ErrSyntax(f"Unable to parse: {writeStr}")
-    
+
     struct_form = parse_struct(writeStr)
     print(struct_to_infix(struct_form))
     return True, rest_goals, [unif]
-  
+
+
 def handle_read(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
@@ -162,7 +168,7 @@ def handle_read(
         return False, rest_goals, []
 
     var = goal.params[0]
-    
+
     if not isinstance(var, Variable):
         return False, rest_goals, []
 
@@ -177,22 +183,23 @@ def handle_read(
             return False, rest_goals, []
 
     full_input = " ".join(line.strip() for line in lines)
-    if full_input.endswith('.'):
+    if full_input.endswith("."):
         full_input = full_input[:-1]
-    
+
     full_input = full_input.strip()
-    
+
     if not full_input:
         return False, rest_goals, []
-    
+
     input_term = Struct(full_input, 0, [])
-    
+
     success, new_unif = match_params([var], [input_term], unif)
-    
+
     if success:
         return True, rest_goals, [new_unif]
     else:
         return False, rest_goals, []
+
 
 BUILTINS = {
     "is": handle_is,
@@ -207,7 +214,7 @@ BUILTINS = {
     "length": handle_list_length,
     "permutation": handle_list_permutation,
     "write": handle_write,
-    "read": handle_read
+    "read": handle_read,
 }
 
 

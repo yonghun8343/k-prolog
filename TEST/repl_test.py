@@ -58,7 +58,8 @@ class TestKProlog(unittest.TestCase):
             "parent(john, mary).",  # Should succeed
             "parent(mary, john).",  # Should fail
             "parent(john, X).",
-            ";",";",  # Should give multiple solutions (mary, tom)
+            ";",
+            ";",  # Should give multiple solutions (mary, tom)
             "likes(mary, pizza).",  # Should succeed
         ]
 
@@ -124,7 +125,8 @@ class TestKProlog(unittest.TestCase):
         commands = [
             "[conjunction].",
             "mother(X).",
-            ";", ";"  # Should give multiple solutions, X = mary, sue
+            ";",
+            ";",  # Should give multiple solutions, X = mary, sue
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
@@ -145,7 +147,9 @@ class TestKProlog(unittest.TestCase):
         commands = [
             "[disjunction].",
             "interesting(X).",
-            ";", ";", ";"
+            ";",
+            ";",
+            ";",
         ]  # Should give multiple solutions, X = prolog, c, python
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
@@ -194,7 +198,8 @@ class TestKProlog(unittest.TestCase):
         commands = [
             "[multiple].",
             "likes(mary, X).",
-            ";", ";"  # Should give multiple solutions, X = pizza, pasta
+            ";",
+            ";",  # Should give multiple solutions, X = pizza, pasta
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
@@ -202,7 +207,7 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("loaded from multiple.txt", stdout)
         self.assertIn("X = pizza", stdout)
         self.assertIn("X = pasta", stdout)
-    
+
     def test_write(self):
         content = """hello :- read(X), write(X)."""
         self.create_test_file("content.txt", content)
@@ -214,7 +219,7 @@ class TestKProlog(unittest.TestCase):
             "read(x).",
             "write(+(2, 3)).",
             "hello.",
-            "whatever."
+            "whatever.",
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)

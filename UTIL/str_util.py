@@ -35,54 +35,77 @@ def format_list(term: Term, elements: List[str] = None) -> str:
     else:
         tail_str = format_term(term)
         return "[" + ", ".join(elements) + "|" + tail_str + "]"
-    
 
-def struct_to_infix(term: Term) -> str:    
+
+def struct_to_infix(term: Term) -> str:
     if not isinstance(term, Struct):
         if isinstance(term, Variable):
             return term.name
         else:
             return str(term)
-    
-    binary_operators = ["+", "-", "*", "/", "//", "mod", "=:=", "=\\=", 
-                       "<", ">", ">=", "=<", "=", "is"]
-    
+
+    binary_operators = [
+        "+",
+        "-",
+        "*",
+        "/",
+        "//",
+        "mod",
+        "=:=",
+        "=\\=",
+        "<",
+        ">",
+        ">=",
+        "=<",
+        "=",
+        "is",
+    ]
+
     if term.arity > 0:
         param_strs = [struct_to_infix(param) for param in term.params]
     else:
         param_strs = []
-    
+
     # If it's a binary operator, convert to infix
     if term.name in binary_operators and term.arity == 2:
         return f"{param_strs[0]} {term.name} {param_strs[1]}"
 
     elif term.name in ["+", "-"] and term.arity == 1:
         return f"{term.name}{param_strs[0]}"
-    
+
     elif term.name == "." and term.arity == 2:
         return dot_to_list_notation(term)
     elif term.name == "[]" and term.arity == 0:
         return "[]"
-    
+
     else:
         if term.arity == 0:
             return term.name
         else:
             return f"{term.name}({','.join(param_strs)})"
-        
-def dot_to_list_notation(term: Term) -> str:    
+
+
+def dot_to_list_notation(term: Term) -> str:
     if not isinstance(term, Struct):
         return str(term)
-    
+
     if term.name == "." and term.arity == 2:
         elements = []
         current = term
-        
-        while isinstance(current, Struct) and current.name == "." and current.arity == 2:
+
+        while (
+            isinstance(current, Struct)
+            and current.name == "."
+            and current.arity == 2
+        ):
             elements.append(current.params[0])
             current = current.params[1]
-        
-        if isinstance(current, Struct) and current.name == "[]" and current.arity == 0:
+
+        if (
+            isinstance(current, Struct)
+            and current.name == "[]"
+            and current.arity == 0
+        ):
             element_strs = [dot_to_list_notation(elem) for elem in elements]
             return "[" + ",".join(element_strs) + "]"
         else:
@@ -92,10 +115,10 @@ def dot_to_list_notation(term: Term) -> str:
                 return "[" + ",".join(element_strs) + "|" + tail_str + "]"
             else:
                 return tail_str
-    
+
     elif term.name == "[]" and term.arity == 0:
         return "[]"
-    
+
     else:
         if term.arity == 0:
             return term.name

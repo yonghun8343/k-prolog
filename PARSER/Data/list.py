@@ -179,7 +179,7 @@ def handle_list_permutation(
                 all_solutions.append(new_unif)
 
         return len(all_solutions) > 0, rest_goals, all_solutions
-        
+
     return False, [], []
 
 
@@ -197,6 +197,7 @@ def extract_list(term: Term) -> List:
                     return None
         else:
             return None
+
 
 def generate_list(n: int) -> Term:
     if n == 0:

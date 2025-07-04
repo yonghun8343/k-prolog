@@ -144,12 +144,12 @@ class TestKProlog(unittest.TestCase):
 
         self.create_test_file("anon.txt", content)
         commands = [
-        "[anon].",
-        "test_anon(L, 5).",     
-        "test_anon(A, B).",
-        "test_anon2(3, 4).",
-        "test_anon2(4, 5).",
-        "test_match(foo, bar).",        
+            "[anon].",
+            "test_anon(L, 5).",
+            "test_anon(A, B).",
+            "test_anon2(3, 4).",
+            "test_anon2(4, 5).",
+            "test_match(foo, bar).",
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
@@ -161,7 +161,7 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("True", stdout)
         self.assertIn("False", stdout)
         self.assertIn("True", stdout)
-    
+
     def test_not(self):
         content = """
         red(apple).
@@ -173,7 +173,7 @@ class TestKProlog(unittest.TestCase):
         commands = [
             "[not].",
             "blue(apple).",
-            "not(15 is (2 + 3) * (4 - 1)).", 
+            "not(15 is (2 + 3) * (4 - 1)).",
             "not(3 is 1 + 3).",
             "not(X is 4).",
         ]
@@ -185,7 +185,7 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("False", stdout)
         self.assertIn("True", stdout)
         self.assertIn("False", stdout)
-    
+
     def test_n_queens(self):
         content = """
         queens(N,Qs) :- range(1,N,Ns), permutation(Ns,Qs), safe(Qs).
@@ -206,7 +206,8 @@ class TestKProlog(unittest.TestCase):
         commands = [
             "[nqueens].",
             "queens(4, Qs).",
-            ";", ";", 
+            ";",
+            ";",
             # "queens(6, Qs).",  # takes too long
             # ";", ";", ";", ";"
         ]
@@ -225,7 +226,7 @@ class TestKProlog(unittest.TestCase):
         commands = [
             "X is +(2,3).",
             "Y is +(*(2, 3), 4 + 1).",
-            "Z is /(+(6, 4), mod(7, 3)).", 
+            "Z is /(+(6, 4), mod(7, 3)).",
             "A is +(+(1, 2), *(/(8, 4), 3)).",
             "B is *(+(2, 3), (4 + mod(10, 3))).",
         ]
@@ -237,7 +238,7 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("Z = 10", stdout)
         self.assertIn("A = 9", stdout)
         self.assertIn("B = 25", stdout)
-    
+
     def test_cut_operator(self):
         content = """max(X, Y, X) :- X >= Y, !.
                 max(X, Y, Y).
@@ -254,29 +255,29 @@ class TestKProlog(unittest.TestCase):
 
                 member_cut(X, [X|_]) :- !.
                 member_cut(X, [_|T]) :- member_cut(X, T)."""
-        
+
         self.create_test_file("cut_test.txt", content)
-        
+
         # Should only give one answer
         commands1 = [
             "[cut_test].",
-            "max(5, 3, Z).", ";" # Should succeed with Z = 5, no backtracking
+            "max(5, 3, Z).",
+            ";",  # Should succeed with Z = 5, no backtracking
         ]
         stdout1, stderr1, returncode1 = self.run_prolog_commands(commands1)
         self.assertIn("Z = 5", stdout1)
 
         # Should not show multiple solutions due to cut
-        commands2 = [
-            "[cut_test].", 
-            "max(2, 7, Z)."
-        ]
+        commands2 = ["[cut_test].", "max(2, 7, Z)."]
         stdout2, stderr2, returncode2 = self.run_prolog_commands(commands2)
         self.assertIn("Z = 7", stdout2)
-        
 
         commands3 = [
             "[cut_test].",
-            "choice(X).", ";", ";", ";"  # Should only give X = a due to cut
+            "choice(X).",
+            ";",
+            ";",
+            ";",  # Should only give X = a due to cut
         ]
         stdout3, stderr3, returncode3 = self.run_prolog_commands(commands3)
         self.assertIn("X = a", stdout3)
@@ -291,20 +292,20 @@ class TestKProlog(unittest.TestCase):
                     q(2).
                     r(1).
                     s(3)."""
-        
+
         self.create_test_file("backtrack_test.txt", content)
-        
+
         commands = [
             "[backtrack_test].",
             "p(1).",  # Should succeed: q(1) succeeds, cut, r(1) succeeds
             "p(2).",  # Should fail: q(2) succeeds, cut, r(2) fails, can't try s(2)
             "p(3).",  # Should succeed: q(3) fails, tries second clause s(3)
         ]
-        
+
         stdout, stderr, returncode = self.run_prolog_commands(commands)
-        
+
         self.assertIn("True", stdout)
-        self.assertIn("False", stdout) 
+        self.assertIn("False", stdout)
         self.assertIn("True", stdout)
 
 
