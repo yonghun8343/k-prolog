@@ -10,6 +10,7 @@ from err import (
 from PARSER.ast import Term
 from PARSER.parser import parse_string
 from SOLVER.solver import solve
+from UTIL.debug import DebugState
 from UTIL.str_util import format_term
 
 
@@ -39,6 +40,14 @@ class Query(Command):
 
 
 class Halt(Command):
+    pass
+
+
+class Trace(Command):
+    pass
+
+
+class NoTrace(Command):
     pass
 
 
@@ -75,6 +84,10 @@ def parse_command(command: str) -> Command:
         return Make()
     elif command == "halt.":
         return Halt()
+    elif command == "trace.":
+        return Trace()
+    elif command == "notrace.":
+        return NoTrace()
     elif command.startswith("listing"):
         if command == "listing.":
             return Listing("none")
@@ -117,7 +130,9 @@ def parse_file_multiline(filepath: str) -> List[List[Term]]:
             parsed = parse_string(statement)
             clauses.extend(parsed)
         except Exception as e:
-            raise ErrSyntax(f"Error parsing statement '{statement}': {e}") from e
+            raise ErrSyntax(
+                f"Error parsing statement '{statement}': {e}"
+            ) from e
 
     return clauses
 
@@ -141,8 +156,11 @@ def validate_clause_syntax(statement: str) -> None:
 
 def execute(program: List[List[Term]]) -> None:
     current_file = None
+    debug_state = DebugState()
     while True:
         try:
+            if debug_state.trace_mode:
+                print("[trace]   ", end="")
             command_input = read_multi_line_input()
         except EOFError:
             break
@@ -176,6 +194,12 @@ def execute(program: List[List[Term]]) -> None:
                     handle_error(ErrFileNotFound(current_file), "reloading")
             else:
                 print("No file to reload")
+        elif isinstance(cmd, Trace):
+            debug_state.trace_mode = True
+            print("true.")
+        elif isinstance(cmd, NoTrace):
+            debug_state.trace_mode = False
+            print("true.")
         elif isinstance(cmd, Listing):
             if current_file:
                 try:
@@ -202,7 +226,7 @@ def execute(program: List[List[Term]]) -> None:
                 print("No goals parsed.")
                 continue
             try:
-                success, unifs = solve(program, goals[0])
+                success, unifs = solve(program, goals[0], debug_state)
                 print_result(success, unifs)
             except ErrProlog as e:
                 handle_error(e, "solving")
