@@ -4,6 +4,7 @@ from err import (
     ErrArithmetic,
     ErrDivisionByZero,
     ErrNotNumber,
+    ErrParsing,
     ErrProlog,
     ErrSyntax,
     ErrUninstantiated,
@@ -156,14 +157,14 @@ def handle_write(  # need to take care of string
         return True, rest_goals, [unif]
 
     if writeStr.startswith('"') or writeStr.endswith('"'):
-        raise ErrSyntax(f"Unable to parse: {writeStr}")
+        raise ErrParsing(f"{writeStr}")
 
     if writeStr.startswith("'") and writeStr.endswith("'"):
         print(writeStr[1:-1])
         return True, rest_goals, [unif]
 
     if writeStr.startswith("'") or writeStr.endswith("'"):
-        raise ErrSyntax(f"Unable to parse: {writeStr}")
+        raise ErrParsing({writeStr})
 
     struct_form = parse_struct(writeStr)
     print(struct_to_infix(struct_form))

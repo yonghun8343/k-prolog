@@ -20,3 +20,4 @@ main :-
     write(G),
     write(L),
     halt.
+

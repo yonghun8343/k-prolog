@@ -3,8 +3,11 @@ from typing import List
 from err import (
     ErrFileNotFound,
     ErrInvalidCommand,
+    ErrParsing,
+    ErrPeriod,
     ErrProlog,
     ErrSyntax,
+    ErrOperator,
     handle_error,
 )
 from PARSER.ast import Term
@@ -21,7 +24,7 @@ class Command:
 class Load(Command):
     def __init__(self, path: str):
         if "." not in path:
-            path += ".txt"  # TODO hardcoded right now
+            path += ".pl"  # TODO hardcoded right now
         self.path = path
 
 
@@ -67,7 +70,7 @@ def read_multi_line_input() -> str:
 
         except EOFError as e:
             if lines:
-                raise ErrSyntax("Incomplete input - missing period") from e
+                raise ErrPeriod("") from e
             else:
                 raise e
 
@@ -126,7 +129,7 @@ def parse_file_multiline(filepath: str) -> List[List[Term]]:
         i += 1
 
     if current_statement.strip():
-        raise ErrSyntax(f"Incomplete statement: {current_statement.strip()}")
+        raise ErrParsing(f"'{current_statement.strip()}'")
 
     clauses = []
     for statement in statements:
@@ -135,9 +138,7 @@ def parse_file_multiline(filepath: str) -> List[List[Term]]:
             parsed = parse_string(statement)
             clauses.extend(parsed)
         except Exception as e:
-            raise ErrSyntax(
-                f"Error parsing statement '{statement}': {e}"
-            ) from e
+            raise ErrSyntax(f"'{statement}': {e}") from e
 
     return clauses
 
@@ -150,13 +151,13 @@ def validate_clause_syntax(statement: str) -> None:
     content = statement[:-1].strip()
 
     if content.count(":-") > 1:
-        raise ErrSyntax(f"Multiple ':-' operators: {statement}")
+        raise ErrOperator(statement, True)
 
     import re
 
     missing_op_pattern = r"\)\s*[a-zA-Z_]"
     if re.search(missing_op_pattern, content):
-        raise ErrSyntax(f"Missing operator between predicates: {statement}")
+        raise ErrOperator(statement, False)
 
 
 def execute(program: List[List[Term]]) -> None:

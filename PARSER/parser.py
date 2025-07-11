@@ -7,6 +7,7 @@ from err import (
     ErrParenthesis,
     ErrProlog,
     ErrSyntax,
+    ErrUnexpected,
     handle_error,
 )
 from PARSER.ast import Struct, Term, Variable
@@ -36,7 +37,7 @@ def split_args(s: str) -> List[str]:
 
 def parse_primary(tokens: List[str], pos: int, operators) -> Tuple[Term, int]:
     if pos >= len(tokens):
-        raise ErrSyntax("Unexpected end of expression")
+        raise ErrUnexpected("")
 
     token = tokens[pos]
 
@@ -76,7 +77,7 @@ def parse_primary(tokens: List[str], pos: int, operators) -> Tuple[Term, int]:
     if token[0].islower():
         return Struct(token, 0, []), pos + 1
 
-    raise ErrSyntax(f"Unexpected token: {token}")
+    raise ErrUnexpected(f"{token}")
 
 
 def parse_precedence(
@@ -136,7 +137,7 @@ def parse_arithmetic_expression(expr: str) -> Term:
     result, pos = parse_precedence(tokenized, 0, 1000, operators)
 
     if pos < len(tokens):
-        raise ErrInvalidTerm(f"Unexpected tokens: {tokenized[pos:]}")
+        raise ErrUnexpected(f"{tokenized[pos:]}")
 
     return result
 

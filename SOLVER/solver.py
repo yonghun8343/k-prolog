@@ -1,6 +1,6 @@
 from typing import Dict, List, Tuple
 
-from err import ErrSyntax
+from err import ErrInvalidCommand, ErrSyntax
 from PARSER.ast import Struct, Term, Variable
 from UTIL.debug import (
     DebugState,
@@ -112,7 +112,7 @@ def solve_with_unification(
 
         if isinstance(x, Struct) and x.name == "not":
             if not len(x.params) == 1:
-                raise ErrSyntax("Not can only have 1 argument")
+                raise ErrInvalidCommand(f"{x.__repr__()}")
 
             inner_goal = substitute_term(old_unif, x.params[0])
             success, solutions, final_seq = solve_with_unification(

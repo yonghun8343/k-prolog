@@ -1,9 +1,9 @@
-from PARSER.ast import Term, Variable, Struct
-from SOLVER.unification import substitute_term, match_params
-from err import *
-
-from typing import List, Union, Dict, Tuple
 import itertools
+from typing import Dict, List, Tuple, Union
+
+from err import ErrList, ErrUninstantiated
+from PARSER.ast import Struct, Term, Variable
+from SOLVER.unification import match_params, substitute_term
 
 
 class PrologList(Term):
@@ -107,8 +107,8 @@ def handle_list_length(
                         [list_term], [generated_list], unif
                     )
                     return success, rest_goals, [new_unif] if success else []
-            except ValueError:
-                raise ErrList("Error generating list")
+            except ValueError as e:
+                raise ErrList() from e
     elif isinstance(list_term, Variable) and isinstance(length_term, Variable):
         raise ErrUninstantiated(f"{list_term}, {length_term}", "list length")
 
@@ -205,7 +205,7 @@ def generate_list(n: int) -> Term:
 
     result = Struct("[]", 0, [])
     for i in range(n):
-        var = Variable(f"_")
+        var = Variable("_")
         result = Struct(".", 2, [var, result])
 
     return result
@@ -222,4 +222,4 @@ def is_list_cons(term: Term) -> bool:
 def get_head_tail(term: Term) -> Tuple[Term, Term]:
     if is_list_cons(term):
         return term.params[0], term.params[1]
-    raise ErrList("Not a list cons structure")
+    raise ErrList()
