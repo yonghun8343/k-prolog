@@ -117,6 +117,8 @@ def handle_list_length(
 
 def count_list_length(list_term: Term) -> int:
     count = 0
+    if not isinstance(list_term, Term):
+        raise ErrList()
 
     while True:
         if isinstance(list_term, Struct):
