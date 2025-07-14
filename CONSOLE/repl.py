@@ -1,10 +1,20 @@
 from typing import List
 
-from PARSER.ast import Term, Struct, Variable
-from PARSER.parser import parse_file, parse_string
+from err import (
+    ErrFileNotFound,
+    ErrInvalidCommand,
+    ErrParsing,
+    ErrPeriod,
+    ErrProlog,
+    ErrSyntax,
+    ErrOperator,
+    handle_error,
+)
+from PARSER.ast import Term
+from PARSER.parser import parse_string
 from SOLVER.solver import solve
-
-from err import *
+from UTIL.debug import DebugState
+from UTIL.str_util import format_term
 
 
 class Command:
@@ -14,7 +24,7 @@ class Command:
 class Load(Command):
     def __init__(self, path: str):
         if "." not in path:
-            path += ".txt"  # TODO hardcoded right now
+            path += ".pl"  # TODO hardcoded right now
         self.path = path
 
 
@@ -36,6 +46,14 @@ class Halt(Command):
     pass
 
 
+class Trace(Command):
+    pass
+
+
+class NoTrace(Command):
+    pass
+
+
 def read_multi_line_input() -> str:
     lines = []
     while True:
@@ -47,18 +65,15 @@ def read_multi_line_input() -> str:
 
             lines.append(line)
 
-            # check if line ends with period
             if line.strip().endswith("."):
                 break
 
-        except EOFError:
+        except EOFError as e:
             if lines:
-                # if we have partial input, treat as incomplete
-                raise ErrSyntax("Incomplete input - missing period")
+                raise ErrPeriod("") from e
             else:
-                raise EOFError
+                raise e
 
-    # join all lines and clean up whitespace
     full_input = " ".join(line.strip() for line in lines)
     return full_input
 
@@ -72,6 +87,10 @@ def parse_command(command: str) -> Command:
         return Make()
     elif command == "halt.":
         return Halt()
+    elif command == "trace.":
+        return Trace()
+    elif command == "notrace.":
+        return NoTrace()
     elif command.startswith("listing"):
         if command == "listing.":
             return Listing("none")
@@ -93,6 +112,11 @@ def parse_file_multiline(filepath: str) -> List[List[Term]]:
     i = 0
     while i < len(content):
         char = content[i]
+        if char == "%":
+            while i < len(content) and content[i] != "\n":
+                i += 1
+            continue
+
         current_statement += char
 
         if char == ".":
@@ -105,24 +129,46 @@ def parse_file_multiline(filepath: str) -> List[List[Term]]:
         i += 1
 
     if current_statement.strip():
-        raise ErrSyntax(f"Incomplete statement: {current_statement.strip()}")
+        raise ErrPeriod(f"'{current_statement.strip()}'")
 
     clauses = []
     for statement in statements:
+        validate_clause_syntax(statement)
         try:
             parsed = parse_string(statement)
             clauses.extend(parsed)
         except Exception as e:
-            raise ErrSyntax(f"Error parsing statement '{statement}': {e}")
+            raise ErrSyntax(f"'{statement}': {e}") from e
 
     return clauses
 
 
+def validate_clause_syntax(statement: str) -> None:
+    statement = statement.strip()
+    if not statement or not statement.endswith("."):
+        return
+
+    content = statement[:-1].strip()
+
+    if content.count(":-") > 1:
+        raise ErrOperator(statement, True)
+
+    import re
+
+    missing_op_pattern = r"\)\s*[a-zA-Z_]"
+    if re.search(missing_op_pattern, content):
+        raise ErrOperator(statement, False)
+
+
 def execute(program: List[List[Term]]) -> None:
     current_file = None
+    debug_state = DebugState()
     while True:
         try:
+            if debug_state.trace_mode:
+                print("[trace]   ", end="")
             command_input = read_multi_line_input()
+            validate_clause_syntax(command_input)
         except EOFError:
             break
         except ErrSyntax as e:
@@ -140,6 +186,7 @@ def execute(program: List[List[Term]]) -> None:
             try:
                 current_file = cmd.path
                 program = parse_file_multiline(cmd.path)
+                print(program)
             except ErrProlog as e:
                 handle_error(e, "parsing")
             except FileNotFoundError:
@@ -155,6 +202,12 @@ def execute(program: List[List[Term]]) -> None:
                     handle_error(ErrFileNotFound(current_file), "reloading")
             else:
                 print("No file to reload")
+        elif isinstance(cmd, Trace):
+            debug_state.trace_mode = True
+            print("true.")
+        elif isinstance(cmd, NoTrace):
+            debug_state.trace_mode = False
+            print("true.")
         elif isinstance(cmd, Listing):
             if current_file:
                 try:
@@ -181,7 +234,7 @@ def execute(program: List[List[Term]]) -> None:
                 print("No goals parsed.")
                 continue
             try:
-                success, unifs = solve(program, goals[0])
+                success, unifs = solve(program, goals[0], debug_state)
                 print_result(success, unifs)
             except ErrProlog as e:
                 handle_error(e, "solving")
@@ -195,39 +248,11 @@ def print_result(result: bool, unifications: List[dict]) -> None:
         for unification in unifications:
             for key, value in unification.items():
                 formatted_value = format_term(value)
-                print(f"{key} = {formatted_value}")
-
-
-def format_term(term: Term) -> str:
-    if isinstance(term, Struct):
-        # if isinstance(term, Struct) and (term.name == "[]" or term.name == "."):
-        #     return format_list(term)
-        # else:
-        if term.arity == 0:
-            return term.name
-        else:
-            params = ", ".join(format_term(p) for p in term.params)
-            return f"{term.name}({params})"
-    elif isinstance(term, Variable):
-        return term.name
-    else:
-        return str(term)
-
-
-# def format_list(term: Term, elements: List[str] = None) -> str:
-#     if elements is None:
-#         elements = []
-
-#     if isinstance(term, Struct):
-#         if term.name == "[]" and term.arity == 0:
-#             return "[" + ", ".join(elements) + "]"
-#         elif term.name == "." and term.arity == 2:
-#             head, tail = term.params
-#             elements.append(format_term(head))
-#             return format_list(tail, elements)
-#         else:
-#             tail_str = format_term(term)
-#             return "[" + ", ".join(elements) + "|" + tail_str + "]"
-#     else:
-#         tail_str = format_term(term)
-#         return "[" + ", ".join(elements) + "|" + tail_str + "]"
+                print(f"{key} = {formatted_value}", end="")
+                if len(unifications) > 1:
+                    if input() == ";":
+                        continue
+                    else:
+                        return
+                else:
+                    print()

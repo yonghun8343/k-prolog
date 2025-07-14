@@ -1,5 +1,5 @@
 import sys
-from typing import Optional, Any
+from typing import Optional
 
 IsVerbose = False
 
@@ -141,18 +141,6 @@ class ErrFileNotFound(ErrDatabase):
         return f"ERROR: File not found '{self.filename}'"
 
 
-class ErrInvalidClause(ErrDatabase):
-    def __init__(self, clause: str, reason: str = ""):
-        self.clause = clause
-        self.reason = reason
-
-    def __str__(self) -> str:
-        base = f"ERROR: Invalid clause '{self.clause}'"
-        if self.reason:
-            base += f" - {self.reason}"
-        return base
-
-
 class ErrUnification(ErrExecution):
     def __init__(self, term1: str, term2: str, reason: str = ""):
         self.term1 = term1
@@ -163,7 +151,16 @@ class ErrUnification(ErrExecution):
         base = f"Unification error: cannot unify '{self.term1}' with '{self.term2}'"
         if self.reason:
             base += f" - {self.reason}"
-        return base
+
+class ErrUnknownPredicate(ErrDatabase):
+    def __init__(self, predicate: str, arity: int):
+        self.predicate = predicate
+        self.arity = arity
+
+    def __str__(self) -> str:
+        return f"Unknown procedure '{self.predicate}/{self.arity}'"        return base
+
+
 
 
 class ErrOccursCheck(ErrUnification):

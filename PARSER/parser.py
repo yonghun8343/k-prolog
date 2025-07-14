@@ -1,9 +1,17 @@
 import re
-from typing import List, Tuple, Dict
+from typing import Dict, List, Tuple
 
+from err import (
+    ErrCommandFormat,
+    ErrInvalidTerm,
+    ErrParenthesis,
+    ErrProlog,
+    ErrSyntax,
+    ErrUnexpected,
+    handle_error,
+)
 from PARSER.ast import Struct, Term, Variable
 from PARSER.Data.list import PrologList
-from err import *
 
 
 def split_args(s: str) -> List[str]:
@@ -29,9 +37,26 @@ def split_args(s: str) -> List[str]:
 
 def parse_primary(tokens: List[str], pos: int, operators) -> Tuple[Term, int]:
     if pos >= len(tokens):
-        raise ErrSyntax("Unexpected end of expression")
+        raise ErrUnexpected("")
 
     token = tokens[pos]
+
+    if token in operators and pos + 1 < len(tokens) and tokens[pos + 1] == "(":
+        op_name = token
+        pos += 2
+
+        args = []
+        while pos < len(tokens) and tokens[pos] != ")":
+            if tokens[pos] == ",":
+                pos += 1
+                continue
+            arg, pos = parse_precedence(tokens, pos, 1000, operators)
+            args.append(arg)
+
+        if pos >= len(tokens) or tokens[pos] != ")":
+            raise ErrParenthesis("closing")
+
+        return Struct(op_name, len(args), args), pos + 1
 
     if token == "(":
         expr, pos = parse_precedence(tokens, pos + 1, 1000, operators)
@@ -52,7 +77,7 @@ def parse_primary(tokens: List[str], pos: int, operators) -> Tuple[Term, int]:
     if token[0].islower():
         return Struct(token, 0, []), pos + 1
 
-    raise ErrSyntax(f"Unexpected token: {token}")
+    raise ErrUnexpected(f"{token}")
 
 
 def parse_precedence(
@@ -82,15 +107,15 @@ def parse_precedence(
 
 
 def parse_arithmetic_expression(expr: str) -> Term:
-    operators = {  # this ds might need to become flexible
-        "*": (400, True),  # True is left, False is right
+    operators = {
+        "*": (400, True),
         "/": (400, True),
         "//": (400, True),
         "mod": (400, True),
         "+": (500, True),
         "-": (500, True),
         "=:=": (700, False),
-        "=\=": (700, False),
+        "=\\=": (700, False),
         "<": (700, False),
         ">": (700, False),
         ">=": (700, False),
@@ -100,46 +125,72 @@ def parse_arithmetic_expression(expr: str) -> Term:
     }
 
     expr = expr.strip()
-    pattern = r"(=:=|=\\=|>=|=<|//|mod|is|\d+\.?\d*|[A-Za-z_][A-Za-z0-9_]*|[+\-*/=<>()])"
+
+    # Enhanced tokenization to handle both infix and structure notation
+    pattern = r"(=:=|=\\=|>=|=<|//|mod|is|\d+\.?\d*|[A-Za-z_][A-Za-z0-9_]*|[+\-*/=<>(),])"
     tokens = re.findall(pattern, expr)
     tokenized = [t for t in tokens if t.strip()]
+
     if not tokenized:
         raise ErrInvalidTerm(expr)
 
-    result, pos = parse_precedence(tokens, 0, 1000, operators)
+    result, pos = parse_precedence(tokenized, 0, 1000, operators)
 
     if pos < len(tokens):
-        raise ErrInvalidTerm(tokens[pos:])
+        raise ErrUnexpected(f"{tokenized[pos:]}")
 
     return result
 
 
-# def parse_list(s: str) -> Term:
-#     s = s.strip()
-#     content = s[1:-1].strip()
+def parse_list(s: str) -> Term:
+    s = s.strip()
+    content = s[1:-1].strip()
 
-#     if not content:  # empty list
-#         return PrologList().to_struct()
+    if not content:  # empty list
+        return PrologList().to_struct()
 
-#     if "|" in content:
-#         parts = content.split("|", 1)
-#         head = parts[0].strip()
-#         tail = parts[1].strip()
+    if "|" in content:  # [H | T]
+        parts = content.split("|", 1)
+        head = parts[0].strip()
+        tail = parts[1].strip()
 
-#         if head:
-#             elements = [parse_term(e.strip()) for e in split_args(head)]
-#         else:
-#             elements = []
+        if head:
+            elements = [parse_term(e.strip()) for e in split_args(head)]
+        else:
+            elements = []
 
-#         tail = parse_term(tail)
-#         return PrologList(elements, tail).to_struct()
-#     else:
-#         elements = [parse_term(e.strip()) for e in split_args(content)]
-#         return PrologList(elements).to_struct()
+        tail = parse_term(tail)
+        return PrologList(elements, tail).to_struct()
+    else:
+        elements = [parse_term(e.strip()) for e in split_args(content)]
+        return PrologList(elements).to_struct()
 
 
 def parse_struct(s: str) -> Term:
     s = s.strip()
+    arithmetic_ops = [
+        "+",
+        "-",
+        "*",
+        "/",
+        "//",
+        "mod",
+        "=:=",
+        "=\\=",
+        ">=",
+        "=<",
+        ">",
+        "<",
+        "is",
+    ]
+    for op in arithmetic_ops:
+        op_pattern = re.escape(op) + r"\s*\("
+        if re.match(op_pattern, s):
+            try:
+                return parse_arithmetic_expression(s)
+            except ErrProlog:
+                # If arithmetic parsing fails, continue with normal struct parsing
+                break
     m = re.match(r"^([a-z0-9][a-zA-Z0-9_]*)\s*\((.*)\)$", s)
     if (
         "=" in s
@@ -163,9 +214,8 @@ def parse_struct(s: str) -> Term:
             right_term = parse_term(right_part)
 
             return Struct("=", 2, [left_term, right_term])
-    # elif s.startswith("[") and s.endswith("]"):
-    #     parsed = parse_list(s)
-    #     return parse_list(s)
+    elif s.startswith("[") and s.endswith("]"):
+        return parse_list(s)
     elif m:
         name = m.group(1)
         args_str = m.group(2)
@@ -201,15 +251,25 @@ def parse_struct(s: str) -> Term:
 
         elif s[0].isupper() or s[0] == "_":
             return Variable(s)  # TODO need variable checking
-
-        return Struct(s, 0, [])
+        else:
+            result = Struct(s, 0, [])
+            return result
 
 
 def parse_term(s: str) -> Term:
     s = s.strip()
     if s and (s[0].isupper() or s[0] == "_"):
+        if s == "_":
+            return Variable(f"_G{generate_unique_id()}")
         return Variable(s)
     return parse_struct(s)
+
+
+def generate_unique_id() -> int:
+    if not hasattr(generate_unique_id, "counter"):
+        generate_unique_id.counter = 0
+    generate_unique_id.counter += 1
+    return generate_unique_id.counter
 
 
 def flatten_semicolons(head: Term, tail_str: str) -> List[List[Term]]:
@@ -229,7 +289,6 @@ def parse_line(line: str) -> List[Term]:
     body = stripped[:-1]
     if ":-" in body:
         head_str, tail_str = body.split(":-", 1)
-
         head = parse_struct(head_str.strip())
 
         if ";" in tail_str:
@@ -256,8 +315,3 @@ def parse_string(s: str) -> List[List[Term]]:
         else:
             parsed.append(parsed_line)
     return parsed
-
-
-def parse_file(path: str) -> List[List[Term]]:
-    with open(path, "r") as f:
-        return parse_string(f.read())

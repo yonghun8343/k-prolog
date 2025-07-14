@@ -1,16 +1,35 @@
 from typing import Dict, List, Tuple
 
+from err import (
+    ErrArithmetic,
+    ErrDivisionByZero,
+    ErrNotNumber,
+    ErrParsing,
+    ErrProlog,
+    ErrSyntax,
+    ErrUninstantiated,
+    ErrUnknownOperator,
+    ErrUnknownPredicate,
+    handle_error,
+)
 from PARSER.ast import Struct, Term, Variable
-from .unification import match_params, substitute_term
-from err import *
+from PARSER.Data.list import (
+    handle_list_append,
+    handle_list_length,
+    handle_list_permutation,
+)
+from PARSER.parser import parse_struct
+from UTIL.str_util import struct_to_infix
+
+from .unification import extract_variable, match_params, substitute_term
 
 
 # TODO should builtins be a class?
 def handle_is(
-    goal: Struct, old_unif: Dict[str, Term]
-) -> Tuple[bool, Dict[str, Term]]:
+    goal: Struct, rest_goals: List[Term], old_unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 2:
-        return False, [], {}
+        raise ErrUnknownPredicate("is", len(goal.params))
 
     left, right = goal.params
     try:
@@ -24,11 +43,11 @@ def handle_is(
         )
 
         success, new_unif = match_params([left], [result_term], old_unif)
-        return success, new_unif if success else {}
+        return success, rest_goals, [new_unif] if success else []
 
     except ErrProlog as e:
         handle_error(e, "is predicate")
-        return False, {}
+        return False, [], []
 
 
 def evaluate_arithmetic(expr: Term, unif: Dict[str, Term]) -> float:
@@ -40,8 +59,8 @@ def evaluate_arithmetic(expr: Term, unif: Dict[str, Term]) -> float:
         if expr.arity == 0:
             try:
                 return float(expr.name)
-            except ValueError:
-                raise ErrNotNumber(expr.name)
+            except ValueError as e:
+                raise ErrNotNumber(expr.name) from e
         elif expr.arity == 2:
             left_val = evaluate_arithmetic(expr.params[0], unif)
             right_val = evaluate_arithmetic(expr.params[1], unif)
@@ -81,10 +100,11 @@ def evaluate_arithmetic(expr: Term, unif: Dict[str, Term]) -> float:
 
 
 def handle_comparison(
-    goal: Struct, unif: Dict[str, Term]
-) -> Tuple[bool, Dict[str, Term]]:
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 2:
-        return False, {}
+        raise ErrUnknownPredicate(goal.name, len(goal.params))
+
     left, right = goal.params
     try:
         left = evaluate_arithmetic(left, unif)
@@ -106,20 +126,134 @@ def handle_comparison(
     elif goal.name == "=\=":
         success = left != right
     else:
-        return False, {}
+        return False, [], []
 
-    return success, unif
+    return success, rest_goals, [unif]
 
 
 def handle_equals(
-    goal: Struct, unif: Dict[str, Term]
-) -> Tuple[bool, Dict[str, Term]]:
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 2:
-        return False, {}
+        raise ErrUnknownPredicate("=", len(goal.params))
+
     left, right = goal.params
 
     success, new_unif = match_params([left], [right], unif)
-    return success, new_unif if success else unif
+    return success, rest_goals, [new_unif] if success else []
+
+
+def handle_write(  # need to take care of string
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 1:
+        raise ErrUnknownPredicate("write", len(goal.params))
+
+    writeStr = str(goal.params[0])
+    new_unif = extract_variable([writeStr], unif)
+    if new_unif:
+        print(new_unif.get(writeStr))
+        return True, rest_goals, [new_unif]
+
+    if writeStr.startswith('"') and writeStr.endswith('"'):
+        print(writeStr[1:-1])
+        return True, rest_goals, [unif]
+
+    if writeStr.startswith('"') or writeStr.endswith('"'):
+        raise ErrParsing(f"{writeStr}")
+
+    if writeStr.startswith("'") and writeStr.endswith("'"):
+        print(writeStr[1:-1])
+        return True, rest_goals, [unif]
+
+    if writeStr.startswith("'") or writeStr.endswith("'"):
+        raise ErrParsing({writeStr})
+
+    struct_form = parse_struct(writeStr)
+    print(struct_to_infix(struct_form))
+    return True, rest_goals, [unif]
+
+
+def handle_read(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 1:
+        raise ErrUnknownPredicate("read", len(goal.params))
+
+    var = goal.params[0]
+
+    if not isinstance(var, Variable):
+        return False, rest_goals, []
+
+    lines = []
+    while True:
+        try:
+            line = input("|: ")
+            lines.append(line)
+            if line.strip().endswith("."):
+                break
+        except EOFError:
+            return False, rest_goals, []
+
+    full_input = " ".join(line.strip() for line in lines)
+    if full_input.endswith("."):
+        full_input = full_input[:-1]
+
+    full_input = full_input.strip()
+
+    if not full_input:
+        return False, rest_goals, []
+
+    input_term = Struct(full_input, 0, [])
+
+    success, new_unif = match_params([var], [input_term], unif)
+
+    if success:
+        return True, rest_goals, [new_unif]
+    else:
+        return False, rest_goals, []
+
+
+def handle_atomic(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 1:
+        raise ErrUnknownPredicate("atomic", len(goal.params))
+
+    param = goal.params[0]
+    if (
+        isinstance(param, Variable)
+        or param.name[0].isupper()
+        or param.name[0] == "_"
+        or param.arity != 0
+    ):
+        return False, [], []
+
+    return True, rest_goals, [unif]
+
+
+def handle_integer(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 1 or goal.params[0].arity != 0:
+        raise ErrUnknownPredicate("integer", len(goal.params))
+
+    try:
+        int(goal.params[0].name)
+        return True, rest_goals, [unif]
+    except ValueError:
+        return False, [], []
+
+
+def handle_nl(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 0:
+        raise ErrUnknownPredicate("nl", len(goal.params))
+
+
+    print()
+    return True, rest_goals, [unif]
 
 
 BUILTINS = {
@@ -131,6 +265,14 @@ BUILTINS = {
     "=:=": handle_comparison,
     "=\=": handle_comparison,
     "=": handle_equals,
+    "append": handle_list_append,
+    "length": handle_list_length,
+    "permutation": handle_list_permutation,
+    "write": handle_write,
+    "read": handle_read,
+    "atomic": handle_atomic,
+    "integer": handle_integer,
+    "nl": handle_nl,
 }
 
 
@@ -139,8 +281,8 @@ def has_builtin(builtin: str) -> bool:
 
 
 def handle_builtins(
-    goal: Struct, old_unif: Dict[str, Term]
-) -> Tuple[bool, Dict[str, Term]]:
+    goal: Struct, rest_goals: List[Term], old_unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if goal.name not in BUILTINS:
-        return False, old_unif
-    return BUILTINS[goal.name](goal, old_unif)
+        return False, [], []
+    return BUILTINS[goal.name](goal, rest_goals, old_unif)
