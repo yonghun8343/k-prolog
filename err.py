@@ -42,44 +42,23 @@ class ErrSyntax(ErrProlog):
         return base
 
 
-class ErrPeriod(ErrSyntax):
-    def __init__(self, line: str):
-        self.line = line
-
-    def __str__(self) -> str:
-        if self.line == "":
-            return "Syntax Error: Incomplete input file - missing period"
-        return f"Syntax Error: Incomplete input- missing period: {self.line}"
-
-
 class ErrParenthesis(ErrSyntax):
     def __init__(self, missing_type: str = "closing"):
         self.missing_type = missing_type
 
     def __str__(self) -> str:
         if self.missing_type == "closing":
-            return "Syntax error: Missing closing parenthesis"
+            return "Syntax error: missing closing parenthesis"
         else:
-            return "Syntax error: Missing opening parenthesis"
-
-
-class ErrUnexpected(ErrSyntax):
-    def __init__(self, token: str):
-        self.token = token
-
-    def __str__(self) -> str:
-        if self.token == "":
-            return "Syntax error: Unexpected end of expression"
-
-        return f"Syntax error: Unexpected token(s): {self.token}"
+            return "Syntax error: missing opening parenthesis"
 
 
 class ErrList(ErrSyntax):
-    def __init__(self):
-        pass
+    def __init__(self, err: str = ""):
+        self.err = err
 
     def __str__(self) -> str:
-        return "Syntax error: Error generating list"
+        return f"Syntax error: list error: {self.err}"
 
 
 class ErrInvalidTerm(ErrSyntax):
@@ -87,26 +66,7 @@ class ErrInvalidTerm(ErrSyntax):
         self.term = term
 
     def __str__(self) -> str:
-        return f"Syntax error: Invalid term '{self.term}'"
-
-
-class ErrParsing(ErrSyntax):
-    def __init__(self, line: str):
-        self.line = line
-
-    def __str__(self):
-        return f"Unable to parse: {self.line}"
-
-
-class ErrOperator(ErrSyntax):
-    def __init__(self, statement: str, multiple: bool):
-        self.statement = statement
-        self.multiple = multiple
-
-    def __str__(self):
-        if self.multiple:
-            return f"Multiple ':-' operators: {self.statement}"
-        return f"Missing operator between predicates: {self.statement}"
+        return f"Syntax error: invalid term '{self.term}'"
 
 
 class ErrExecution(ErrProlog):
@@ -119,7 +79,7 @@ class ErrUninstantiated(ErrExecution):
         self.context = context
 
     def __str__(self) -> str:
-        base = "Arguments are not sufficiently instantiated"
+        base = "ERROR: Arguments are not sufficiently instantiated"
         if self.variable:
             base += f" (variable: {self.variable})"
         if self.context:
@@ -164,24 +124,21 @@ class ErrDatabase(ErrProlog):
     pass
 
 
+class ErrUnknownPredicate(ErrDatabase):
+    def __init__(self, predicate: str, arity: int):
+        self.predicate = predicate
+        self.arity = arity
+
+    def __str__(self) -> str:
+        return f"ERROR: Unknown procedure '{self.predicate}/{self.arity}'"
+
+
 class ErrFileNotFound(ErrDatabase):
     def __init__(self, filename: str):
         self.filename = filename
 
     def __str__(self) -> str:
-        return f"File not found '{self.filename}'"
-
-
-class ErrInvalidClause(ErrDatabase):
-    def __init__(self, clause: str, reason: str = ""):
-        self.clause = clause
-        self.reason = reason
-
-    def __str__(self) -> str:
-        base = f"Invalid clause '{self.clause}'"
-        if self.reason:
-            base += f" - {self.reason}"
-        return base
+        return f"ERROR: File not found '{self.filename}'"
 
 
 class ErrUnification(ErrExecution):
@@ -194,7 +151,16 @@ class ErrUnification(ErrExecution):
         base = f"Unification error: cannot unify '{self.term1}' with '{self.term2}'"
         if self.reason:
             base += f" - {self.reason}"
-        return base
+
+class ErrUnknownPredicate(ErrDatabase):
+    def __init__(self, predicate: str, arity: int):
+        self.predicate = predicate
+        self.arity = arity
+
+    def __str__(self) -> str:
+        return f"Unknown procedure '{self.predicate}/{self.arity}'"        return base
+
+
 
 
 class ErrOccursCheck(ErrUnification):
@@ -215,7 +181,7 @@ class ErrInvalidCommand(ErrREPL):
         self.command = command
 
     def __str__(self) -> str:
-        return f"Invalid command '{self.command}'"
+        return f"ERROR: Invalid command '{self.command}'"
 
 
 class ErrCommandFormat(ErrREPL):
@@ -224,4 +190,4 @@ class ErrCommandFormat(ErrREPL):
         self.expected_format = expected_format
 
     def __str__(self) -> str:
-        return f"Command format error. '{self.command}' (expected format: {self.expected_format})"
+        return f"ERROR: Command format error. '{self.command}' (expected format: {self.expected_format})"

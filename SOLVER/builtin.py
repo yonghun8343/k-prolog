@@ -9,6 +9,7 @@ from err import (
     ErrSyntax,
     ErrUninstantiated,
     ErrUnknownOperator,
+    ErrUnknownPredicate,
     handle_error,
 )
 from PARSER.ast import Struct, Term, Variable
@@ -28,7 +29,7 @@ def handle_is(
     goal: Struct, rest_goals: List[Term], old_unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 2:
-        return False, [], []
+        raise ErrUnknownPredicate("is", len(goal.params))
 
     left, right = goal.params
     try:
@@ -102,7 +103,8 @@ def handle_comparison(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 2:
-        return False, [], []
+        raise ErrUnknownPredicate(goal.name, len(goal.params))
+
     left, right = goal.params
     try:
         left = evaluate_arithmetic(left, unif)
@@ -133,7 +135,8 @@ def handle_equals(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 2:
-        return False, [], []
+        raise ErrUnknownPredicate("=", len(goal.params))
+
     left, right = goal.params
 
     success, new_unif = match_params([left], [right], unif)
@@ -144,7 +147,7 @@ def handle_write(  # need to take care of string
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 1:
-        return False, [], []
+        raise ErrUnknownPredicate("write", len(goal.params))
 
     writeStr = str(goal.params[0])
     new_unif = extract_variable([writeStr], unif)
@@ -175,7 +178,7 @@ def handle_read(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 1:
-        return False, rest_goals, []
+        raise ErrUnknownPredicate("read", len(goal.params))
 
     var = goal.params[0]
 
@@ -215,7 +218,7 @@ def handle_atomic(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 1:
-        return False, [], []
+        raise ErrUnknownPredicate("atomic", len(goal.params))
 
     param = goal.params[0]
     if (
@@ -233,7 +236,7 @@ def handle_integer(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 1 or goal.params[0].arity != 0:
-        return False, [], []
+        raise ErrUnknownPredicate("integer", len(goal.params))
 
     try:
         int(goal.params[0].name)
@@ -246,7 +249,8 @@ def handle_nl(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 0:
-        return False, [], []
+        raise ErrUnknownPredicate("nl", len(goal.params))
+
 
     print()
     return True, rest_goals, [unif]

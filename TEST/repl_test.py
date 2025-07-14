@@ -1,7 +1,12 @@
-import unittest
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import subprocess
 import tempfile
-import os
+import unittest
+
+from err import *
 
 
 class TestKProlog(unittest.TestCase):
@@ -269,42 +274,42 @@ class TestKProlog(unittest.TestCase):
             "integer(4.5)integer(3.0).",
             "language(X) :- interesting(X) :- lecture(X).",
             "language(X) :- interesting(X) lecture(X).",
+            "write(\"hello)."
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertFalse("True" in stdout or "hello" in stdout)
-        self.assertIn("Syntax Error", stderr)
-        self.assertFalse("True" in stdout or "14" in stdout)
-        self.assertIn("missing closing parenthesis", stderr)
-        self.assertFalse("True" in stdout)
-        self.assertIn("Error", stderr)
-
+        self.assertRaises(ErrPeriod)
+        self.assertRaises(ErrParenthesis)
+        self.assertRaises(ErrOperator)
+        self.assertRaises(ErrParsing)
 
     def test_errprolog(self):
-        commands = ["append(Y, X, L).", 
-                    "X is Y / 2.", 
-                    "X is 3 + 4 * ().", 
-                    "X is 3 / 0."]
+        commands = [
+            "append(Y, X, L).",
+            "X is Y / 2.",
+            "X is 3 + 4 * ().",
+            "X is 3 / 0.",
+            "X is 3 + a."
+        ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertFalse("True" in stdout)
-        self.assertIn(
-            "Error: Arguments are not sufficiently instantiated", stderr
-        )
-        self.assertFalse("True" in stdout or "X = 7" in stdout)
-        self.assertIn("unexpected token(s)", stderr)
-        self.assertIn("Division by zero", stderr)
+        self.assertRaises(ErrUninstantiated)
+        self.assertRaises(ErrUnexpected)
+        self.assertRaises(ErrDivisionByZero)
+        self.assertRaises(ErrNotNumber)
 
     def test_errrepl(self):
-        commands = ["listing(child.pl.", "[random]."]
+        commands = ["listing(child.pl.",
+        "[random].",
+        "write(hello, 2)."]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("Error: Invalid", stderr)
-        self.assertFalse("loaded random.pl" in stderr)
-        self.assertIn("Error: File not found", stderr)
+        self.assertRaises(ErrInvalidCommand)
+        self.assertRaises(ErrFileNotFound)
+        self.assertRaises(ErrUnknownPredicate)
 
 
 if __name__ == "__main__":
