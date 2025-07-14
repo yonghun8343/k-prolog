@@ -58,9 +58,9 @@ class ErrParenthesis(ErrSyntax):
 
     def __str__(self) -> str:
         if self.missing_type == "closing":
-            return "Syntax error: missing closing parenthesis"
+            return "Syntax error: Missing closing parenthesis"
         else:
-            return "Syntax error: missing opening parenthesis"
+            return "Syntax error: Missing opening parenthesis"
 
 
 class ErrUnexpected(ErrSyntax):
@@ -69,9 +69,9 @@ class ErrUnexpected(ErrSyntax):
 
     def __str__(self) -> str:
         if self.token == "":
-            return "Syntax error: unexpected end of expression"
+            return "Syntax error: Unexpected end of expression"
 
-        return f"Syntax error: unexpected token(s): {self.token}"
+        return f"Syntax error: Unexpected token(s): {self.token}"
 
 
 class ErrList(ErrSyntax):
@@ -79,7 +79,7 @@ class ErrList(ErrSyntax):
         pass
 
     def __str__(self) -> str:
-        return "Syntax error: error generating list"
+        return "Syntax error: Error generating list"
 
 
 class ErrInvalidTerm(ErrSyntax):
@@ -87,7 +87,7 @@ class ErrInvalidTerm(ErrSyntax):
         self.term = term
 
     def __str__(self) -> str:
-        return f"Syntax error: invalid term '{self.term}'"
+        return f"Syntax error: Invalid term '{self.term}'"
 
 
 class ErrParsing(ErrSyntax):
@@ -119,7 +119,7 @@ class ErrUninstantiated(ErrExecution):
         self.context = context
 
     def __str__(self) -> str:
-        base = "Error: Arguments are not sufficiently instantiated"
+        base = "Arguments are not sufficiently instantiated"
         if self.variable:
             base += f" (variable: {self.variable})"
         if self.context:
@@ -164,21 +164,12 @@ class ErrDatabase(ErrProlog):
     pass
 
 
-class ErrUnknownPredicate(ErrDatabase):
-    def __init__(self, predicate: str, arity: int):
-        self.predicate = predicate
-        self.arity = arity
-
-    def __str__(self) -> str:
-        return f"Error: Unknown procedure '{self.predicate}/{self.arity}'"
-
-
 class ErrFileNotFound(ErrDatabase):
     def __init__(self, filename: str):
         self.filename = filename
 
     def __str__(self) -> str:
-        return f"Error: File not found '{self.filename}'"
+        return f"File not found '{self.filename}'"
 
 
 class ErrInvalidClause(ErrDatabase):
@@ -187,7 +178,7 @@ class ErrInvalidClause(ErrDatabase):
         self.reason = reason
 
     def __str__(self) -> str:
-        base = f"Error: Invalid clause '{self.clause}'"
+        base = f"Invalid clause '{self.clause}'"
         if self.reason:
             base += f" - {self.reason}"
         return base
@@ -224,7 +215,7 @@ class ErrInvalidCommand(ErrREPL):
         self.command = command
 
     def __str__(self) -> str:
-        return f"Error: Invalid command '{self.command}'"
+        return f"Invalid command '{self.command}'"
 
 
 class ErrCommandFormat(ErrREPL):
@@ -233,4 +224,4 @@ class ErrCommandFormat(ErrREPL):
         self.expected_format = expected_format
 
     def __str__(self) -> str:
-        return f"Error: Command format error. '{self.command}' (expected format: {self.expected_format})"
+        return f"Command format error. '{self.command}' (expected format: {self.expected_format})"

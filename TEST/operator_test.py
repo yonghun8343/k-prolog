@@ -142,7 +142,7 @@ class TestKProlog(unittest.TestCase):
         test_match(_, _).
         """
 
-        self.create_test_file("anon.txt", content)
+        self.create_test_file("anon.pl", content)
         commands = [
             "[anon].",
             "test_anon(L, 5).",
@@ -154,7 +154,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("loaded from anon.txt", stdout)
+        self.assertIn("loaded from anon.pl", stdout)
 
         self.assertIn("L = 3", stdout)
         self.assertIn("A = 3", stdout)
@@ -168,7 +168,7 @@ class TestKProlog(unittest.TestCase):
         blue(X) :- not(red(X)).
         """
 
-        self.create_test_file("not.txt", content)
+        self.create_test_file("not.pl", content)
 
         commands = [
             "[not].",
@@ -180,7 +180,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("loaded from not.txt", stdout)
+        self.assertIn("loaded from not.pl", stdout)
         self.assertIn("False", stdout)
         self.assertIn("False", stdout)
         self.assertIn("True", stdout)
@@ -201,7 +201,7 @@ class TestKProlog(unittest.TestCase):
         range(M,N,[M|Ns]) :- M < N, M1 is M+1, range(M1,N,Ns).
         """
 
-        self.create_test_file("nqueens.txt", content)
+        self.create_test_file("nqueens.pl", content)
 
         commands = [
             "[nqueens].",
@@ -214,7 +214,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("loaded from nqueens.txt", stdout)
+        self.assertIn("loaded from nqueens.pl", stdout)
         self.assertIn("Qs = [2, 4, 1, 3]", stdout)
         self.assertIn("Qs = [3, 1, 4, 2]", stdout)
         # self.assertIn("Qs = [2, 4, 6, 1, 3, 5]", stdout)
@@ -256,7 +256,7 @@ class TestKProlog(unittest.TestCase):
                 member_cut(X, [X|_]) :- !.
                 member_cut(X, [_|T]) :- member_cut(X, T)."""
 
-        self.create_test_file("cut_test.txt", content)
+        self.create_test_file("cut_test.pl", content)
 
         # Should only give one answer
         commands1 = [
@@ -293,7 +293,7 @@ class TestKProlog(unittest.TestCase):
                     r(1).
                     s(3)."""
 
-        self.create_test_file("backtrack_test.txt", content)
+        self.create_test_file("backtrack_test.pl", content)
 
         commands = [
             "[backtrack_test].",

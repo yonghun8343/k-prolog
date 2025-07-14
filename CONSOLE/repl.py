@@ -129,7 +129,7 @@ def parse_file_multiline(filepath: str) -> List[List[Term]]:
         i += 1
 
     if current_statement.strip():
-        raise ErrParsing(f"'{current_statement.strip()}'")
+        raise ErrPeriod(f"'{current_statement.strip()}'")
 
     clauses = []
     for statement in statements:
@@ -168,6 +168,7 @@ def execute(program: List[List[Term]]) -> None:
             if debug_state.trace_mode:
                 print("[trace]   ", end="")
             command_input = read_multi_line_input()
+            validate_clause_syntax(command_input)
         except EOFError:
             break
         except ErrSyntax as e:

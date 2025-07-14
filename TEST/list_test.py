@@ -47,7 +47,7 @@ class TestKProlog(unittest.TestCase):
         content = """sum([], 0).
                      sum([H|T], X) :- sum(T,Y), X is H + Y."""
 
-        self.create_test_file("list.txt", content)
+        self.create_test_file("list.pl", content)
 
         commands = [
             "[list].",
