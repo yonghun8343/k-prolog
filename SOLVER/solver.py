@@ -1,7 +1,15 @@
 from typing import Dict, List, Tuple
 
-from err import ErrInvalidCommand, ErrSyntax
+from err import (
+    ErrInvalidCommand,
+    ErrProlog,
+    ErrSyntax,
+    ErrUnknownPredicate,
+    handle_error,
+)
 from PARSER.ast import Struct, Term, Variable
+from PARSER.Data.list import PrologList
+from PARSER.parser import parse_line
 from UTIL.debug import (
     DebugState,
     handle_trace_input,
@@ -70,6 +78,43 @@ def init_rules(clause: List[Term], counter: int) -> Tuple[List[Term], int]:
     return renamed_clause, current_counter
 
 
+def handle_findall(
+    goal: Struct,
+    rest_goals: List[Term],
+    unif: Dict[str, Term],
+    program: List[List[Term]],
+    debug_state: DebugState,
+    seq: int,
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 3:
+        raise ErrUnknownPredicate("findall", len(goal.params))
+    template, query_goal, result_bag = goal.params
+
+    try:
+        parsed_goals = parse_line(query_goal + ".")
+
+        if not parsed_goals:
+            result_list = PrologList([]).to_struct()
+            return True, result_list, seq
+
+        success, new_unifs, final_seq = solve_with_unification(
+            program, parsed_goals, unif, seq, debug_state
+        )
+
+        solutions = []
+        if success:
+            for unif_dict in new_unifs:
+                instantiated_template = substitute_term(unif_dict, template)
+                solutions.append(instantiated_template)
+
+        result_list = PrologList(solutions).to_struct()
+        success, final_unif = match_params([result_bag], [result_list], unif)
+        return success, rest_goals, [final_unif]
+
+    except ErrProlog as e:
+        handle_error(e, "findall predicate")
+        return False, [], []
+
 def solve_with_unification(
     program: List[List[Term]],
     goals: List[Term],
@@ -88,6 +133,12 @@ def solve_with_unification(
     debug_state.call_depth += 1
 
     try:
+        # if isinstance(x, Struct) and x.name == "," and x.arity == 2:
+        #     flattened_goals = flatten_comma_structure(x)
+        #     new_goals = flattened_goals + rest
+        #     return solve_with_unification(
+        #         program, new_goals, old_unif, seq, debug_state
+        #     )
         if isinstance(x, Struct) and x.name == "!" and x.arity == 0:
             success, solutions, final_seq = solve_with_unification(
                 program,
@@ -132,11 +183,17 @@ def solve_with_unification(
                 return solve_with_unification(
                     program, rest, old_unif, final_seq, debug_state
                 )
-
-        if isinstance(x, Struct) and has_builtin(x.name):
-            success, new_goals, new_unifications = handle_builtins(
-                x, rest, old_unif
-            )
+        if isinstance(x, Struct) and (
+            x.name == "findall" or has_builtin(x.name)
+        ):
+            if x.name == "findall":
+                success, new_goals, new_unifications = handle_findall(
+                    x, rest, old_unif, program, debug_state, seq
+                )
+            else:
+                success, new_goals, new_unifications = handle_builtins(
+                    x, rest, old_unif
+                )
             if success:
                 all_solutions = []
                 for unif in new_unifications:

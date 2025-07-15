@@ -8,6 +8,7 @@ from err import (
     ErrProlog,
     ErrSyntax,
     ErrUnexpected,
+    ErrUnknownPredicate,
     handle_error,
 )
 from PARSER.ast import Struct, Term, Variable
@@ -219,30 +220,29 @@ def parse_struct(s: str) -> Term:
     elif m:
         name = m.group(1)
         args_str = m.group(2)
-        parts = split_args(args_str)
-        params = [parse_term(p) for p in parts]
-        return Struct(name, len(params), params)
+
+        # Special handling for findall
+        if name == "findall":
+            parts = split_args(args_str)
+            if len(parts) != 3:
+                raise ErrUnknownPredicate("findall", len(parts))
+
+            template = parse_term(parts[0])
+            result_bag = parse_term(parts[2])
+            query_str = parts[1].strip()
+
+            if query_str.startswith("(") and query_str.endswith(")"):
+                query_str = query_str[1:-1].strip()
+
+            return Struct("findall", 3, [template, query_str, result_bag])
+        else:
+            parts = split_args(args_str)
+            params = [parse_term(p) for p in parts]
+            return Struct(name, len(params), params)
     else:
         if not s:
             raise ErrInvalidTerm("Empty term")
-        if any(
-            op in s
-            for op in [
-                "is",
-                "+",
-                "-",
-                "*",
-                "/",
-                "//",
-                "mod",
-                ">",
-                "<",
-                ">=",
-                "=<",
-                "=:=",
-                "=\=",
-            ]
-        ):
+        if any(op in s for op in arithmetic_ops):
             try:
                 result = parse_arithmetic_expression(s)
                 return result
@@ -258,6 +258,25 @@ def parse_struct(s: str) -> Term:
 
 def parse_term(s: str) -> Term:
     s = s.strip()
+    if any(
+        op in s
+        for op in [
+            "is",
+            "+",
+            "-",
+            "*",
+            "/",
+            "//",
+            "mod",
+            ">",
+            "<",
+            ">=",
+            "=<",
+            "=:=",
+            "=\\=",
+        ]
+    ):
+        return parse_struct(s)
     if s and (s[0].isupper() or s[0] == "_"):
         if s == "_":
             return Variable(f"_G{generate_unique_id()}")
@@ -275,8 +294,13 @@ def generate_unique_id() -> int:
 def flatten_semicolons(head: Term, tail_str: str) -> List[List[Term]]:
     predicates = []
     tails = [parse_struct(part.strip()) for part in tail_str.strip().split(";")]
-    for tail in tails:
-        predicates.append([head] + [tail])
+    if head is not None:
+        for tail in tails:
+            predicates.append([head] + [tail])
+    else:
+        for tail in tails:
+            predicates.append([tail])
+
     return predicates
 
 
@@ -296,9 +320,16 @@ def parse_line(line: str) -> List[Term]:
         else:
             parts = split_args(tail_str)
             tails = [parse_struct(part.strip()) for part in parts]
+            print("structs is ", [head] + tails)
             return [head] + tails
     else:
-        return [parse_struct(body)]
+        if ";" in body:
+            return flatten_semicolons(None, body)
+        else:
+            parts = split_args(body)
+            structs = [parse_struct(part.strip()) for part in parts]
+            print("structs is ", structs)
+            return structs
 
 
 def parse_string(s: str) -> List[List[Term]]:

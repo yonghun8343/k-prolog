@@ -42,6 +42,35 @@ class ErrSyntax(ErrProlog):
         return base
 
 
+class ErrPeriod(ErrSyntax):
+    def __init__(self, string: str):
+        self.string = string
+
+    def __str__(self) -> str:
+        if self.string == "":
+            return "Input is missing a period."
+        return f"Statement {self.string} is missing a period"
+
+
+class ErrOperator(ErrSyntax):
+    def __init__(self, statememt: str, multiple: bool):
+        self.statement = statement
+        self.multiple = multiple
+
+    def __str__(self) -> str:
+        if self.multiple:
+            return f"Too many :- operators in {self.statement}"
+        return f"Operator expected in {self.statement}"
+
+
+class ErrUnexpected(ErrSyntax):
+    def __init__(self, token: str):
+        self.token = token
+
+    def __str__(self) -> str:
+        return f"Unexpected token(s): {self.token}"
+
+
 class ErrParenthesis(ErrSyntax):
     def __init__(self, missing_type: str = "closing"):
         self.missing_type = missing_type
@@ -73,13 +102,21 @@ class ErrExecution(ErrProlog):
     pass
 
 
+class ErrParsing(ErrExecution):
+    def __init__(self, parseStr: str):
+        self.parseStr = parseStr
+
+    def __str__(self) -> str:
+        return f"Parsing error: could not parse {this.parseStr}"
+
+
 class ErrUninstantiated(ErrExecution):
     def __init__(self, variable: str = "", context: str = ""):
         self.variable = variable
         self.context = context
 
     def __str__(self) -> str:
-        base = "ERROR: Arguments are not sufficiently instantiated"
+        base = "Arguments are not sufficiently instantiated"
         if self.variable:
             base += f" (variable: {self.variable})"
         if self.context:
@@ -130,7 +167,7 @@ class ErrUnknownPredicate(ErrDatabase):
         self.arity = arity
 
     def __str__(self) -> str:
-        return f"ERROR: Unknown procedure '{self.predicate}/{self.arity}'"
+        return f"Unknown procedure '{self.predicate}/{self.arity}'"
 
 
 class ErrFileNotFound(ErrDatabase):
@@ -138,7 +175,7 @@ class ErrFileNotFound(ErrDatabase):
         self.filename = filename
 
     def __str__(self) -> str:
-        return f"ERROR: File not found '{self.filename}'"
+        return f"File not found '{self.filename}'"
 
 
 class ErrUnification(ErrExecution):
@@ -151,6 +188,8 @@ class ErrUnification(ErrExecution):
         base = f"Unification error: cannot unify '{self.term1}' with '{self.term2}'"
         if self.reason:
             base += f" - {self.reason}"
+        return base
+
 
 class ErrUnknownPredicate(ErrDatabase):
     def __init__(self, predicate: str, arity: int):
@@ -158,9 +197,7 @@ class ErrUnknownPredicate(ErrDatabase):
         self.arity = arity
 
     def __str__(self) -> str:
-        return f"Unknown procedure '{self.predicate}/{self.arity}'"        return base
-
-
+        return f"Unknown procedure '{self.predicate}/{self.arity}'"
 
 
 class ErrOccursCheck(ErrUnification):
@@ -181,7 +218,7 @@ class ErrInvalidCommand(ErrREPL):
         self.command = command
 
     def __str__(self) -> str:
-        return f"ERROR: Invalid command '{self.command}'"
+        return f"Invalid command '{self.command}'"
 
 
 class ErrCommandFormat(ErrREPL):
@@ -190,4 +227,4 @@ class ErrCommandFormat(ErrREPL):
         self.expected_format = expected_format
 
     def __str__(self) -> str:
-        return f"ERROR: Command format error. '{self.command}' (expected format: {self.expected_format})"
+        return f"Command format error. '{self.command}' (expected format: {self.expected_format})"

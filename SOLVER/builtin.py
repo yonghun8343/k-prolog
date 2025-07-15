@@ -24,7 +24,6 @@ from UTIL.str_util import struct_to_infix
 from .unification import extract_variable, match_params, substitute_term
 
 
-# TODO should builtins be a class?
 def handle_is(
     goal: Struct, rest_goals: List[Term], old_unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
@@ -251,9 +250,32 @@ def handle_nl(
     if len(goal.params) != 0:
         raise ErrUnknownPredicate("nl", len(goal.params))
 
-
     print()
     return True, rest_goals, [unif]
+
+
+def handle_writeln(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 1:
+        raise ErrUnknownPredicate("writeln", len(goal.params))
+
+    success, goals, new_unif = handle_write(goal, rest_goals, unif)
+    # print()
+
+    return success, goals, new_unif
+
+
+def handle_number(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 1:
+        raise ErrUnknownPredicate("number", len(goal.params))
+
+    if goal.params[0].name.isnumeric():
+        return True, rest_goals, [unif]
+
+    return False, rest_goals, [unif]
 
 
 BUILTINS = {
@@ -269,10 +291,12 @@ BUILTINS = {
     "length": handle_list_length,
     "permutation": handle_list_permutation,
     "write": handle_write,
+    "writeln": handle_writeln,
     "read": handle_read,
     "atomic": handle_atomic,
     "integer": handle_integer,
     "nl": handle_nl,
+    "number": handle_number,
 }
 
 

@@ -186,7 +186,6 @@ def execute(program: List[List[Term]]) -> None:
             try:
                 current_file = cmd.path
                 program = parse_file_multiline(cmd.path)
-                print(program)
             except ErrProlog as e:
                 handle_error(e, "parsing")
             except FileNotFoundError:
