@@ -1,3 +1,4 @@
+#coding: utf-8
 import sys
 from typing import Optional
 
@@ -10,9 +11,9 @@ def eprint(*args, **kwargs) -> None:
 
 def handle_error(error: Exception, context: str = "") -> None:
     if IsVerbose:
-        eprint(f"Context: {context}")
-        eprint(f"Error type: {type(error).__name__}")
-    eprint(f"Error: {error}")
+        eprint(f"문맥맥: {context}")
+        eprint(f"오류 타입입: {type(error).__name__}")
+    eprint(f"오류: {error}")
 
 
 class ErrProlog(Exception):
@@ -31,11 +32,11 @@ class ErrSyntax(ErrProlog):
         self.pos = pos
 
     def __str__(self) -> str:
-        base = "Syntax error"
+        base = "구문 오류"
         if self.line is not None:
-            base += f" (line {self.line}"
+            base += f" (라인 {self.line}"
             if self.pos is not None:
-                base += f", position {self.pos}"
+                base += f", 위치 {self.pos}"
             base += ")"
         if self.message:
             base += f": {self.message}"
@@ -48,19 +49,19 @@ class ErrPeriod(ErrSyntax):
 
     def __str__(self) -> str:
         if self.string == "":
-            return "Input is missing a period."
-        return f"Statement {self.string} is missing a period"
+            return "입력에 마침표가 없읍니다."
+        return f"문장 {self.string}에 마침표가 없읍니다"
 
 
 class ErrOperator(ErrSyntax):
-    def __init__(self, statememt: str, multiple: bool):
+    def __init__(self, statement: str, multiple: bool):
         self.statement = statement
         self.multiple = multiple
 
     def __str__(self) -> str:
         if self.multiple:
-            return f"Too many :- operators in {self.statement}"
-        return f"Operator expected in {self.statement}"
+            return f"'{self.statement}'에 연산자가 너무 많습니다"
+        return f"'{self.statement}'에 연산자가 필요합니다"
 
 
 class ErrUnexpected(ErrSyntax):
@@ -68,7 +69,7 @@ class ErrUnexpected(ErrSyntax):
         self.token = token
 
     def __str__(self) -> str:
-        return f"Unexpected token(s): {self.token}"
+        return f"예상치 못한 토큰: {self.token}"
 
 
 class ErrParenthesis(ErrSyntax):
@@ -77,9 +78,9 @@ class ErrParenthesis(ErrSyntax):
 
     def __str__(self) -> str:
         if self.missing_type == "closing":
-            return "Syntax error: missing closing parenthesis"
+            return "닫는 괄호가 없읍니다"
         else:
-            return "Syntax error: missing opening parenthesis"
+            return "여는 괄호가 없읍니다"
 
 
 class ErrList(ErrSyntax):
@@ -87,7 +88,7 @@ class ErrList(ErrSyntax):
         self.err = err
 
     def __str__(self) -> str:
-        return f"Syntax error: list error: {self.err}"
+        return f"리스트 오류: {self.err}"
 
 
 class ErrInvalidTerm(ErrSyntax):
@@ -95,7 +96,7 @@ class ErrInvalidTerm(ErrSyntax):
         self.term = term
 
     def __str__(self) -> str:
-        return f"Syntax error: invalid term '{self.term}'"
+        return f"잘못된 항: {self.term}"
 
 
 class ErrExecution(ErrProlog):
@@ -107,7 +108,7 @@ class ErrParsing(ErrExecution):
         self.parseStr = parseStr
 
     def __str__(self) -> str:
-        return f"Parsing error: could not parse {this.parseStr}"
+        return f"파싱 오류: {self.parseStr}을 구문 분석할 수 없읍니다"
 
 
 class ErrUninstantiated(ErrExecution):
@@ -116,11 +117,10 @@ class ErrUninstantiated(ErrExecution):
         self.context = context
 
     def __str__(self) -> str:
-        base = "Arguments are not sufficiently instantiated"
+        base = "인수가 충분히 인스턴스화되지 않았습니다"
         if self.variable:
-            base += f" (variable: {self.variable})"
-        if self.context:
-            base += f" in {self.context}"
+            base += f" (변수: {self.variable})"
+        
         return base
 
 
@@ -130,7 +130,7 @@ class ErrArithmetic(ErrExecution):
         self.reason = reason
 
     def __str__(self) -> str:
-        base = f"Arithmetic error: {self.operation}"
+        base = f"산술 오류: {self.operation}"
         if self.reason:
             base += f" - {self.reason}"
         return base
@@ -138,7 +138,7 @@ class ErrArithmetic(ErrExecution):
 
 class ErrDivisionByZero(ErrArithmetic):
     def __init__(self):
-        super().__init__("Division by zero")
+        super().__init__("0으로 나누기")
 
 
 class ErrNotNumber(ErrArithmetic):
@@ -146,7 +146,7 @@ class ErrNotNumber(ErrArithmetic):
         self.value = value
 
     def __str__(self) -> str:
-        return f"Arithmetic error: '{self.value}' is not a number"
+        return f"{self.value}은(는) 숫자가 아닙니다"
 
 
 class ErrUnknownOperator(ErrArithmetic):
@@ -154,7 +154,7 @@ class ErrUnknownOperator(ErrArithmetic):
         self.operator = operator
 
     def __str__(self) -> str:
-        return f"Arithmetic error: unknown operator '{self.operator}'"
+        return f"알 수 없는 연산자: {self.operator}"
 
 
 class ErrDatabase(ErrProlog):
@@ -167,7 +167,7 @@ class ErrUnknownPredicate(ErrDatabase):
         self.arity = arity
 
     def __str__(self) -> str:
-        return f"Unknown procedure '{self.predicate}/{self.arity}'"
+        return f"알 수 없는 함수: {self.predicate}/{self.arity}"
 
 
 class ErrFileNotFound(ErrDatabase):
@@ -175,7 +175,7 @@ class ErrFileNotFound(ErrDatabase):
         self.filename = filename
 
     def __str__(self) -> str:
-        return f"File not found '{self.filename}'"
+        return f"파일 '{self.filename}' 을(를) 찾을 수 없습니다"
 
 
 class ErrUnification(ErrExecution):
@@ -185,28 +185,10 @@ class ErrUnification(ErrExecution):
         self.reason = reason
 
     def __str__(self) -> str:
-        base = f"Unification error: cannot unify '{self.term1}' with '{self.term2}'"
+        base = f"통합 오류: '{self.term1}' 을(를) '{self.term2}'랑 통합 할 수 없습니다"
         if self.reason:
             base += f" - {self.reason}"
         return base
-
-
-class ErrUnknownPredicate(ErrDatabase):
-    def __init__(self, predicate: str, arity: int):
-        self.predicate = predicate
-        self.arity = arity
-
-    def __str__(self) -> str:
-        return f"Unknown procedure '{self.predicate}/{self.arity}'"
-
-
-class ErrOccursCheck(ErrUnification):
-    def __init__(self, variable: str, term: str):
-        self.variable = variable
-        self.term = term
-
-    def __str__(self) -> str:
-        return f"Occurs check error: variable '{self.variable}' occurs in term '{self.term}'"
 
 
 class ErrREPL(ErrProlog):
@@ -218,7 +200,7 @@ class ErrInvalidCommand(ErrREPL):
         self.command = command
 
     def __str__(self) -> str:
-        return f"Invalid command '{self.command}'"
+        return f"잘못된 명령: {self.command}"
 
 
 class ErrCommandFormat(ErrREPL):
@@ -227,4 +209,4 @@ class ErrCommandFormat(ErrREPL):
         self.expected_format = expected_format
 
     def __str__(self) -> str:
-        return f"Command format error. '{self.command}' (expected format: {self.expected_format})"
+        return f"명령 형식 오류: {self.command} (예상 형식: {self.expected_format})"

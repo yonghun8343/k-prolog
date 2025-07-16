@@ -1,2 +1,7 @@
-even(2).
-isMultiple(X) :- interesting(X), even(X).
+p(X) :- q(X), !, r(X).
+p(X) :- s(X).
+
+q(1).
+q(2).
+r(1).
+s(3).

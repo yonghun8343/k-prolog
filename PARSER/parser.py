@@ -320,7 +320,6 @@ def parse_line(line: str) -> List[Term]:
         else:
             parts = split_args(tail_str)
             tails = [parse_struct(part.strip()) for part in parts]
-            print("structs is ", [head] + tails)
             return [head] + tails
     else:
         if ";" in body:
@@ -328,7 +327,6 @@ def parse_line(line: str) -> List[Term]:
         else:
             parts = split_args(body)
             structs = [parse_struct(part.strip()) for part in parts]
-            print("structs is ", structs)
             return structs
 
 
