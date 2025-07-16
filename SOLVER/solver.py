@@ -135,14 +135,12 @@ def solve_with_unification(
 
     try:
         if isinstance(x, Struct) and x.name == "fail" and x.arity == 0:
-            print(f"DEBUG: Executing fail - should always return False")
             if debug_state.trace_mode:
                 show_call_trace(x, debug_state.call_depth - 1)
                 handle_trace_input(debug_state)
             return False, [], seq
 
         if isinstance(x, Struct) and x.name == "!" and x.arity == 0:
-            print(f"DEBUG: Executing cut at depth {debug_state.call_depth}")
             success, solutions, final_seq = solve_with_unification(
                 program,
                 rest,
@@ -151,13 +149,6 @@ def solve_with_unification(
                 debug_state,
             )
             if success:
-                print(
-                    f"DEBUG: Cut succeeded, marking solutions to prevent backtrack"
-                )
-                if debug_state.trace_mode:
-                    show_exit_trace(x, debug_state.call_depth - 1)
-                    handle_trace_input()
-
                 marked_solutions = []
                 for solution in solutions:
                     marked_solution = solution.copy()
@@ -165,7 +156,6 @@ def solve_with_unification(
                     marked_solutions.append(marked_solution)
                 return True, marked_solutions, final_seq
             else:
-                print(f"DEBUG: Cut failed")
                 cut_marker = old_unif.copy()
                 cut_marker["__CUT_ENCOUNTERED__"] = True
                 return False, [cut_marker], final_seq
@@ -237,13 +227,9 @@ def solve_with_unification(
                 return bool(all_solutions), all_solutions, seq
 
         clauses = [c for c in program if is_relevant(x, c)]
-        print(f"DEBUG: Found {len(clauses)} relevant clauses for {x}")
         all_solutions = []
-        i = 0
 
         for clause in clauses:
-            print(f"DEBUG: Trying clause {i}: {clause}")
-
             renamed_clause, new_seq = init_rules(clause, seq)
             seq = new_seq
             is_match, new_goals, unif = match_predicate(
@@ -251,7 +237,6 @@ def solve_with_unification(
             )
 
             if is_match:
-                print(f"DEBUG: Clause {i} matched, executing body: {new_goals}")
                 success, solutions, final_seq = solve_with_unification(
                     program,
                     new_goals,
@@ -259,25 +244,18 @@ def solve_with_unification(
                     seq,
                     debug_state,
                 )
-                print(
-                    f"DEBUG: Clause {i} result: success={success}, solutions={solutions}"
-                )
+
                 seq = final_seq
 
-                # Check for cut FIRST, before adding to all_solutions
                 if any(
                     "__CUT_ENCOUNTERED__" in solution for solution in solutions
                 ):
-                    print(f"DEBUG: Cut encountered, stopping backtracking")
                     if success:
                         all_solutions.extend(solutions)
 
                     return success, solutions, final_seq
-
-            else:
-                print(f"DEBUG: Clause {i} didn't match")
-
-            i += 1  # Increment i regardless of whether clause matched
+                if success:
+                    all_solutions.extend(solutions)
 
         if debug_state.trace_mode and all_solutions:
             show_exit_trace(x, debug_state.call_depth - 1)
