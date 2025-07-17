@@ -13,6 +13,24 @@ from err import (
 )
 from PARSER.ast import Struct, Term, Variable
 from PARSER.Data.list import PrologList
+# from SOLVER.builtin import handle_builtins
+
+
+def has_top_level_comma(s: str) -> bool:
+    depth = 0
+    bracket_depth = 0
+    for ch in s:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        elif ch == "[":
+            bracket_depth += 1
+        elif ch == "]":
+            bracket_depth -= 1
+        elif ch == "," and depth == 0 and bracket_depth == 0:
+            return True
+    return False
 
 
 def split_args(s: str) -> List[str]:
@@ -60,10 +78,45 @@ def parse_primary(tokens: List[str], pos: int, operators) -> Tuple[Term, int]:
         return Struct(op_name, len(args), args), pos + 1
 
     if token == "(":
-        expr, pos = parse_precedence(tokens, pos + 1, 1000, operators)
-        if pos >= len(tokens) or tokens[pos] != ")":
+        og_pos = pos + 1
+        paren_depth = 0
+        search_pos = pos + 1
+
+        while search_pos < len(tokens):
+            if tokens[search_pos] == "(":
+                paren_depth += 1
+            elif tokens[search_pos] == ")":
+                if paren_depth == 0:
+                    break
+                paren_depth -= 1
+            search_pos += 1
+
+        if search_pos >= len(tokens):
             raise ErrParenthesis("closing")
-        return expr, pos + 1
+        content_tokens = tokens[og_pos:search_pos]
+        content_str = ""
+        for i, token in enumerate(content_tokens):
+            if token in ["(", ")", ","] or (
+                i > 0 and content_tokens[i - 1] in ["(", ","]
+            ):
+                content_str += token
+            else:
+                if content_str and content_str[-1] not in ["(", ","]:
+                    content_str += " "
+                content_str += token
+
+        if "," in content_str:
+            parts = split_args(content_str)
+            goals = [parse_struct(part.strip()) for part in parts]
+            if len(goals) == 1:
+                return goals[0], search_pos + 1
+            else:
+                result = goals[0]
+                for goal in goals[1:]:
+                    result = Struct(",", 2, [result, goal])
+                return result, search_pos + 1
+        else:
+            return parse_struct(content_str), search_pos + 1
 
     if token in ["+", "-"] and pos + 1 < len(tokens):
         operand, pos = parse_primary(tokens, pos + 1, operators)
@@ -217,6 +270,21 @@ def parse_struct(s: str) -> Term:
             return Struct("=", 2, [left_term, right_term])
     elif s.startswith("[") and s.endswith("]"):
         return parse_list(s)
+    elif s.startswith("(") and s.endswith(")"):
+        inner_content = s[1:-1].strip()
+        if "," in inner_content and has_top_level_comma(inner_content):
+            parts = split_args(inner_content)
+            goals = [parse_struct(part.strip()) for part in parts]
+
+            if len(goals) == 1:
+                return goals[0]
+            else:
+                result = goals[0]
+                for goal in goals[1:]:
+                    result = Struct(",", 2, [result, goal])
+                return result
+        else:
+            return parse_struct(inner_content)
     elif m:
         name = m.group(1)
         args_str = m.group(2)
@@ -258,6 +326,7 @@ def parse_struct(s: str) -> Term:
 
 def parse_term(s: str) -> Term:
     s = s.strip()
+
     if any(
         op in s
         for op in [
@@ -281,6 +350,7 @@ def parse_term(s: str) -> Term:
         if s == "_":
             return Variable(f"_G{generate_unique_id()}")
         return Variable(s)
+
     return parse_struct(s)
 
 

@@ -123,6 +123,7 @@ def solve_with_unification(
     seq: int,
     debug_state: DebugState,
 ) -> Tuple[bool, List[Dict[str, Term]], int]:
+    print(f"goals is {goals}")
     if not goals:
         return True, [old_unif], seq
     x, *rest = goals
@@ -177,7 +178,7 @@ def solve_with_unification(
             else:
                 if debug_state.trace_mode:
                     show_exit_trace(x, debug_state.call_depth - 1)
-                    handle_trace_input()
+                    handle_trace_input(debug_state)
 
                 return solve_with_unification(
                     program, rest, old_unif, final_seq, debug_state
@@ -186,6 +187,7 @@ def solve_with_unification(
         if isinstance(x, Struct) and (
             x.name == "findall" or has_builtin(x.name)
         ):
+            print("reached here2")
             if x.name == "findall":
                 success, new_goals, new_unifications = handle_findall(
                     x, rest, old_unif, program, debug_state, seq
@@ -222,7 +224,7 @@ def solve_with_unification(
 
                 if debug_state.trace_mode and all_solutions:
                     show_exit_trace(x, debug_state.call_depth - 1)
-                    handle_trace_input()
+                    handle_trace_input(debug_state)
 
                 return bool(all_solutions), all_solutions, seq
 

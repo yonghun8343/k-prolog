@@ -1,6 +1,32 @@
 from typing import List
 
 from PARSER.ast import Struct, Term, Variable
+# from PARSER.parser import parse_struct
+
+
+# def string_to_infix(writeStr: str) -> str:
+#     struct_form = parse_struct(writeStr)
+#     return struct_to_infix(struct_form)
+def term_to_string(term: Term) -> str:
+    if isinstance(term, Variable):
+        return term.name
+    elif isinstance(term, Struct):
+        if term.arity == 0:
+            return term.name
+        elif term.name == "," and term.arity == 2:
+            # Don't start with comma - just join the parts
+            left = term_to_string(term.params[0])
+            right = term_to_string(term.params[1])
+            return f"{left}, {right}"  # No leading comma!
+        elif term.name == ";" and term.arity == 2:
+            left = term_to_string(term.params[0])
+            right = term_to_string(term.params[1])
+            return f"{left}; {right}"
+        else:
+            params_str = ", ".join(term_to_string(p) for p in term.params)
+            return f"{term.name}({params_str})"
+    else:
+        return str(term)
 
 
 def format_term(term: Term) -> str:

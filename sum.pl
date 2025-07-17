@@ -1,3 +1,3 @@
-
-a(X) :- c(X) :- d(X).
-a(X) :- b(X)
+sum([], 0).
+sum([H|T], X) :- 
+    sum(T, Y), X is H + Y.

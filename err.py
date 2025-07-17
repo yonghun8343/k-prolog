@@ -1,4 +1,4 @@
-#coding: utf-8
+# coding: utf-8
 import sys
 from typing import Optional
 
@@ -11,8 +11,8 @@ def eprint(*args, **kwargs) -> None:
 
 def handle_error(error: Exception, context: str = "") -> None:
     if IsVerbose:
-        eprint(f"문맥맥: {context}")
-        eprint(f"오류 타입입: {type(error).__name__}")
+        eprint(f"문맥: {context}")
+        eprint(f"오류 타입: {type(error).__name__}")
     eprint(f"오류: {error}")
 
 
@@ -49,8 +49,8 @@ class ErrPeriod(ErrSyntax):
 
     def __str__(self) -> str:
         if self.string == "":
-            return "입력에 마침표가 없읍니다."
-        return f"문장 {self.string}에 마침표가 없읍니다"
+            return "입력에 마침표가 없습니다"
+        return f"문장 {self.string}에 마침표가 없습니다"
 
 
 class ErrOperator(ErrSyntax):
@@ -120,7 +120,7 @@ class ErrUninstantiated(ErrExecution):
         base = "인수가 충분히 인스턴스화되지 않았습니다"
         if self.variable:
             base += f" (변수: {self.variable})"
-        
+
         return base
 
 
@@ -185,7 +185,7 @@ class ErrUnification(ErrExecution):
         self.reason = reason
 
     def __str__(self) -> str:
-        base = f"통합 오류: '{self.term1}' 을(를) '{self.term2}'랑 통합 할 수 없습니다"
+        base = f"통합 오류: '{self.term1}' 을(를) '{self.term2}'이랑 통합 할 수 없습니다"
         if self.reason:
             base += f" - {self.reason}"
         return base
@@ -204,9 +204,8 @@ class ErrInvalidCommand(ErrREPL):
 
 
 class ErrCommandFormat(ErrREPL):
-    def __init__(self, command: str, expected_format: str):
+    def __init__(self, command: str):
         self.command = command
-        self.expected_format = expected_format
 
     def __str__(self) -> str:
-        return f"명령 형식 오류: {self.command} (예상 형식: {self.expected_format})"
+        return f"명령 형식 오류: {self.command}"

@@ -122,7 +122,7 @@ def handle_comparison(
         success = left <= right
     elif goal.name == "=:=":
         success = left == right
-    elif goal.name == "=\=":
+    elif goal.name == "=\\=":
         success = left != right
     else:
         return False, [], []
@@ -145,6 +145,7 @@ def handle_equals(
 def handle_write(  # need to take care of string
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    print("in write")
     if len(goal.params) != 1:
         raise ErrUnknownPredicate("write", len(goal.params))
 
@@ -278,6 +279,17 @@ def handle_number(
     return False, rest_goals, [unif]
 
 
+# def handle_initialization(
+#     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+# ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+#     if len(goal.params) != 1:
+#         raise ErrUnknownPredicate("initialization", len(goal.params))
+
+#     if goal.params[0].name.isnumeric():
+#         return True, rest_goals, [unif]
+
+#     return False, rest_goals, [unif]
+
 BUILTINS = {
     "is": handle_is,
     ">": handle_comparison,
@@ -297,6 +309,7 @@ BUILTINS = {
     "integer": handle_integer,
     "nl": handle_nl,
     "number": handle_number,
+    # "initialization": handle_initialization,  # don't know behavior when is not passed in as file
 }
 
 

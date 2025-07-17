@@ -1,20 +1,21 @@
-from typing import List
+from typing import List, Tuple
 
 from err import (
     ErrFileNotFound,
     ErrInvalidCommand,
+    ErrOperator,
     ErrParsing,
     ErrPeriod,
     ErrProlog,
     ErrSyntax,
-    ErrOperator,
+    ErrUnknownPredicate,
     handle_error,
 )
-from PARSER.ast import Term
+from PARSER.ast import Struct, Term
 from PARSER.parser import parse_string
 from SOLVER.solver import solve
 from UTIL.debug import DebugState
-from UTIL.str_util import format_term
+from UTIL.str_util import format_term, term_to_string
 
 
 class Command:
@@ -102,10 +103,12 @@ def parse_command(command: str) -> Command:
         return Query(command)
 
 
-def parse_file_multiline(filepath: str) -> List[List[Term]]:
+def parse_file_multiline(
+    filepath: str, debug_state
+) -> Tuple[List[List[Term]], List]:
     with open(filepath, "r") as f:
         content = f.read()
-
+    pending_goals = []
     statements = []
     current_statement = ""
 
@@ -123,7 +126,26 @@ def parse_file_multiline(filepath: str) -> List[List[Term]]:
             statement = current_statement.strip()
             if statement:
                 statement = " ".join(statement.split())
-                statements.append(statement)
+                if statement.startswith(":-"):
+                    directive_body = statement[2:].strip()
+                    goals = parse_string(directive_body)
+
+                    if (
+                        goals
+                        and isinstance(goals[0][0], Struct)
+                        and goals[0][0].name == "initialization"
+                    ):
+                        if len(goals[0][0].params) != 1:
+                            raise ErrUnknownPredicate(
+                                "initialization", len(goals[0][0].params)
+                            )
+                        init_goal = goals[0][0].params[0]
+                        pending_goals.append(init_goal)
+                    else:
+                        success, unifs = solve([], goals, debug_state)
+                        print_result(success, unifs)
+                else:
+                    statements.append(statement)
             current_statement = ""
 
         i += 1
@@ -140,7 +162,43 @@ def parse_file_multiline(filepath: str) -> List[List[Term]]:
         except Exception as e:
             raise ErrSyntax(f"'{statement}': {e}") from e
 
-    return clauses
+    return clauses, pending_goals
+
+
+def flatten_comma_structure(term: Term) -> List[Term]:
+    """Flatten comma structures into a list of individual goals"""
+    if isinstance(term, Struct) and term.name == "," and term.arity == 2:
+        left_goals = flatten_comma_structure(term.params[0])
+        right_goals = flatten_comma_structure(term.params[1])
+        return left_goals + right_goals
+    else:
+        return [term]
+
+
+def execute_pending_initializations(
+    program: List[List[Term]],
+    pending_goals: List[Term],
+    debug_state: DebugState,
+):
+    for goal in pending_goals:
+        try:
+            if (
+                isinstance(goal, Struct)
+                and goal.name == ","
+                and goal.arity == 2
+            ):
+                flattened_goals = flatten_comma_structure(goal)
+
+                # execute all goals as a sequence
+                success, unifs = solve(program, flattened_goals, debug_state)
+                print_result(success, unifs)
+            else:
+                # single goal - execute directly
+                success, unifs = solve(program, [goal], debug_state)
+                print_result(success, unifs)
+
+        except ErrProlog as e:
+            handle_error(e, "initialization goal")
 
 
 def validate_clause_syntax(statement: str) -> None:
@@ -185,7 +243,9 @@ def execute(program: List[List[Term]]) -> None:
             print(f"loaded from {cmd.path}")
             try:
                 current_file = cmd.path
-                program = parse_file_multiline(cmd.path)
+                program, pending = parse_file_multiline(cmd.path, debug_state)
+                execute_pending_initializations(program, pending, debug_state)
+
             except ErrProlog as e:
                 handle_error(e, "parsing")
             except FileNotFoundError:
@@ -193,7 +253,7 @@ def execute(program: List[List[Term]]) -> None:
         elif isinstance(cmd, Make):
             if current_file:
                 try:
-                    program = parse_file_multiline(current_file)
+                    program, p = parse_file_multiline(current_file, debug_state)
                     print(f"reloaded from {current_file}")
                 except ErrProlog as e:
                     handle_error(e, "reloading")

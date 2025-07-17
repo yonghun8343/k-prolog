@@ -6,7 +6,19 @@ import subprocess
 import tempfile
 import unittest
 
-from err import *
+from err import (
+    ErrDivisionByZero,
+    ErrFileNotFound,
+    ErrInvalidCommand,
+    ErrNotNumber,
+    ErrOperator,
+    ErrParenthesis,
+    ErrParsing,
+    ErrPeriod,
+    ErrUnexpected,
+    ErrUninstantiated,
+    ErrUnknownPredicate,
+)
 
 
 class TestKProlog(unittest.TestCase):
@@ -340,6 +352,45 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("N = [6]", stdout)
         self.assertIn("P = [2]", stdout)
         self.assertIn("R = [4]", stdout)
+
+    def test_initialization_directive(self):
+        content = """:- initialization(start_system).
+                    start_system :- write('System initialized'), nl.
+                    main_goal."""
+        self.create_test_file("init.pl", content)
+        commands = [
+            "[init].",
+            "main_goal.",  # Some other goal to test normal execution
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("System initialized", stdout)
+        self.assertIn("True", stdout)
+
+    def test_initialization_compound_goal(self):
+        content = """:- initialization((write('Start'), nl, write('End'), nl))."""  # TODO wont work when wrapped with parens
+        self.create_test_file("init.pl", content)
+
+        commands = [
+            "[init].",
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("Start", stdout)
+        self.assertIn("End", stdout)
+
+    def test_initialization_with_arithmetic(self):
+        content = """:- initialization((X is 2 + 3, write(X)))."""
+        self.create_test_file("init.pl", content)
+        commands = [
+            "[init].",
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("5", stdout)
 
 
 if __name__ == "__main__":
