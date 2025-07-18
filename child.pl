@@ -1,2 +1,2 @@
-
-:- initialization((write('Start'), nl, write('End'), nl)).
+합집(0, 0).
+합집(_n, _결) :- _n > 0, _n1 := _n - 1, 합집(_n1, _sub), _결 := _n + _sub.

@@ -84,18 +84,20 @@ def parse_command(command: str) -> Command:
         return Load(command[1:-2])
     elif command.startswith("consult(") and command.endswith(")."):
         return Load(command[8:-2])
-    elif command == "make.":
+    elif command == "make." or command == "재적재.":
         return Make()
-    elif command == "halt.":
+    elif command == "halt." or command == "종료":
         return Halt()
-    elif command == "trace.":
+    elif command == "trace." or command == "추적":
         return Trace()
-    elif command == "notrace.":
+    elif command == "notrace." or command == "추적중단":
         return NoTrace()
-    elif command.startswith("listing"):
-        if command == "listing.":
+    elif command.startswith("listing") or command.startswith("목록"):
+        if command == "listing." or command == "목록":
             return Listing("none")
-        elif command.startswith("listing(") and command.endswith(")."):
+        elif (command.startswith("listing(") and command.endswith(").")) or (
+            command.startswith("목록") and command.endswith(").")
+        ):
             return Listing(command[8:-2])
         else:
             raise ErrInvalidCommand(command)
@@ -133,11 +135,14 @@ def parse_file_multiline(
                     if (
                         goals
                         and isinstance(goals[0][0], Struct)
-                        and goals[0][0].name == "initialization"
+                        and (
+                            goals[0][0].name == "initialization"
+                            or goals[0][0].name == "초기화"
+                        )
                     ):
                         if len(goals[0][0].params) != 1:
                             raise ErrUnknownPredicate(
-                                "initialization", len(goals[0][0].params)
+                                "", len(goals[0][0].params)
                             )
                         init_goal = goals[0][0].params[0]
                         pending_goals.append(init_goal)
@@ -166,7 +171,6 @@ def parse_file_multiline(
 
 
 def flatten_comma_structure(term: Term) -> List[Term]:
-    """Flatten comma structures into a list of individual goals"""
     if isinstance(term, Struct) and term.name == "," and term.arity == 2:
         left_goals = flatten_comma_structure(term.params[0])
         right_goals = flatten_comma_structure(term.params[1])
@@ -213,7 +217,7 @@ def validate_clause_syntax(statement: str) -> None:
 
     import re
 
-    missing_op_pattern = r"\)\s*[a-zA-Z_]"
+    missing_op_pattern = r"\)\s*(_[가-힣]|[a-zA-Z_])"
     if re.search(missing_op_pattern, content):
         raise ErrOperator(statement, False)
 
@@ -224,7 +228,7 @@ def execute(program: List[List[Term]]) -> None:
     while True:
         try:
             if debug_state.trace_mode:
-                print("[trace]   ", end="")
+                print("[추적]   ", end="")
             command_input = read_multi_line_input()
             validate_clause_syntax(command_input)
         except EOFError:
@@ -240,7 +244,7 @@ def execute(program: List[List[Term]]) -> None:
             continue
 
         if isinstance(cmd, Load):
-            print(f"loaded from {cmd.path}")
+            print(f"{cmd.path}에서 적재했습니다")
             try:
                 current_file = cmd.path
                 program, pending = parse_file_multiline(cmd.path, debug_state)
@@ -254,19 +258,19 @@ def execute(program: List[List[Term]]) -> None:
             if current_file:
                 try:
                     program, p = parse_file_multiline(current_file, debug_state)
-                    print(f"reloaded from {current_file}")
+                    print(f"{current_file}에서 재적재했습니다")
                 except ErrProlog as e:
                     handle_error(e, "reloading")
                 except FileNotFoundError:
                     handle_error(ErrFileNotFound(current_file), "reloading")
             else:
-                print("No file to reload")
+                print("재적재할 파일리 없습니다")
         elif isinstance(cmd, Trace):
             debug_state.trace_mode = True
-            print("true.")
+            print("참.")
         elif isinstance(cmd, NoTrace):
             debug_state.trace_mode = False
-            print("true.")
+            print("참.")
         elif isinstance(cmd, Listing):
             if current_file:
                 try:
@@ -280,7 +284,7 @@ def execute(program: List[List[Term]]) -> None:
                 except FileNotFoundError:
                     handle_error(ErrFileNotFound(current_file), "listing")
             else:
-                print("No file to list")
+                print("목록할 파일이 없읍니다")
         elif isinstance(cmd, Halt):
             break
         elif isinstance(cmd, Query):
@@ -290,7 +294,7 @@ def execute(program: List[List[Term]]) -> None:
                 handle_error(e, "query")
                 continue
             if not goals:
-                print("No goals parsed.")
+                print("목표가 구문 분석되지 않았습니다")
                 continue
             try:
                 success, unifs = solve(program, goals[0], debug_state)
@@ -302,7 +306,10 @@ def execute(program: List[List[Term]]) -> None:
 
 def print_result(result: bool, unifications: List[dict]) -> None:
     if all(not unif for unif in unifications):
-        print(result)
+        if result is True:
+            print("참")
+        else:
+            print("거짓")
     else:
         for unification in unifications:
             for key, value in unification.items():

@@ -117,7 +117,7 @@ class ErrUninstantiated(ErrExecution):
         self.context = context
 
     def __str__(self) -> str:
-        base = "인수가 충분히 인스턴스화되지 않았습니다"
+        base = "인수가 충분히 실체화되지 않았습니다"
         if self.variable:
             base += f" (변수: {self.variable})"
 
@@ -130,7 +130,7 @@ class ErrArithmetic(ErrExecution):
         self.reason = reason
 
     def __str__(self) -> str:
-        base = f"산술 오류: {self.operation}"
+        base = f"산술연산 오류: {self.operation}"
         if self.reason:
             base += f" - {self.reason}"
         return base

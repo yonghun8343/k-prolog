@@ -110,7 +110,7 @@ def handle_list_length(
             except ValueError as e:
                 raise ErrList() from e
     elif isinstance(list_term, Variable) and isinstance(length_term, Variable):
-        raise ErrUninstantiated(f"{list_term}, {length_term}", "list length")
+        raise ErrUninstantiated(f"{list_term}, {length_term}", "기리")
 
     return False, [], []
 

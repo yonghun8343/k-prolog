@@ -87,7 +87,7 @@ def handle_findall(
     seq: int,
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 3:
-        raise ErrUnknownPredicate("findall", len(goal.params))
+        raise ErrUnknownPredicate("모두찾기", len(goal.params))
     template, query_goal, result_bag = goal.params
 
     try:
@@ -123,7 +123,6 @@ def solve_with_unification(
     seq: int,
     debug_state: DebugState,
 ) -> Tuple[bool, List[Dict[str, Term]], int]:
-    print(f"goals is {goals}")
     if not goals:
         return True, [old_unif], seq
     x, *rest = goals
@@ -135,7 +134,11 @@ def solve_with_unification(
     debug_state.call_depth += 1
 
     try:
-        if isinstance(x, Struct) and x.name == "fail" and x.arity == 0:
+        if (
+            isinstance(x, Struct)
+            and ((x.name == "fail") or (x.name == "포기"))
+            and x.arity == 0
+        ):
             if debug_state.trace_mode:
                 show_call_trace(x, debug_state.call_depth - 1)
                 handle_trace_input(debug_state)
@@ -161,7 +164,9 @@ def solve_with_unification(
                 cut_marker["__CUT_ENCOUNTERED__"] = True
                 return False, [cut_marker], final_seq
 
-        if isinstance(x, Struct) and x.name == "not":
+        if isinstance(x, Struct) and (
+            (x.name == "not") or (x.name == "논리부정")
+        ):
             if not len(x.params) == 1:
                 raise ErrInvalidCommand(f"{x.__repr__()}")
 
@@ -185,9 +190,9 @@ def solve_with_unification(
                 )
 
         if isinstance(x, Struct) and (
-            x.name == "findall" or has_builtin(x.name)
+            (x.name == "findall" or x.name == "모두 찾기")
+            or has_builtin(x.name)
         ):
-            print("reached here2")
             if x.name == "findall":
                 success, new_goals, new_unifications = handle_findall(
                     x, rest, old_unif, program, debug_state, seq

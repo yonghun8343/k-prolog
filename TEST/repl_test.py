@@ -342,7 +342,7 @@ class TestKProlog(unittest.TestCase):
             "findall(Y, (Y is 5, Y =< 10), M).",  # Multiple conditions
             "findall(Z, (Z is 2 * 3, Z < 10), N).",  # Arithmetic with comparison
             "findall(W, (W is 1 + 1, W =:= 2), P).",  # Arithmetic equality
-            "findall(B, (B is 4, B mod 2 =:= 0), R).",  # Even number check
+            "findall(B, (B is 4, B 나머지 2 =:= 0), R).",  # Even number check
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)

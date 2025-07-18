@@ -1,3 +1,4 @@
+# coding: utf-8
 import re
 from typing import Dict, List, Tuple
 
@@ -122,13 +123,13 @@ def parse_primary(tokens: List[str], pos: int, operators) -> Tuple[Term, int]:
         operand, pos = parse_primary(tokens, pos + 1, operators)
         return Struct(token, 1, [operand]), pos
 
-    if re.match(r"^\d+\.?\d*$", token):
+    if re.match(r"^\d+\.?\d*$", token):  # TODO find out if need to convert
         return Struct(token, 0, []), pos + 1
 
     if token[0].isupper() or token[0] == "_":
         return Variable(token), pos + 1
 
-    if token[0].islower():
+    else:  # FIXME
         return Struct(token, 0, []), pos + 1
 
     raise ErrUnexpected(f"{token}")
@@ -165,23 +166,26 @@ def parse_arithmetic_expression(expr: str) -> Term:
         "*": (400, True),
         "/": (400, True),
         "//": (400, True),
-        "mod": (400, True),
+        "나머지": (400, True),
         "+": (500, True),
         "-": (500, True),
         "=:=": (700, False),
-        "=\\=": (700, False),
+        "=\=": (700, False),
         "<": (700, False),
         ">": (700, False),
         ">=": (700, False),
         "=<": (700, False),
         "=": (700, False),
         "is": (700, False),
+        ":=": (700, False),
     }
 
     expr = expr.strip()
 
-    # Enhanced tokenization to handle both infix and structure notation
-    pattern = r"(=:=|=\\=|>=|=<|//|mod|is|\d+\.?\d*|[A-Za-z_][A-Za-z0-9_]*|[+\-*/=<>(),])"
+    expr = expr.replace("=\=", "=\\=")
+
+    pattern = r"(=\\=|=:=|>=|=<|//|나머지|is|:=|\d+\.?\d*|[A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ_][A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ0-9_]*|[+\-*/=<>(),])"
+
     tokens = re.findall(pattern, expr)
     tokenized = [t for t in tokens if t.strip()]
 
@@ -228,14 +232,15 @@ def parse_struct(s: str) -> Term:
         "*",
         "/",
         "//",
-        "mod",
+        "나머지",
         "=:=",
-        "=\\=",
+        "=\=",
         ">=",
         "=<",
         ">",
         "<",
         "is",
+        ":=",
     ]
     for op in arithmetic_ops:
         op_pattern = re.escape(op) + r"\s*\("
@@ -245,20 +250,22 @@ def parse_struct(s: str) -> Term:
             except ErrProlog:
                 # If arithmetic parsing fails, continue with normal struct parsing
                 break
-    m = re.match(r"^([a-z0-9][a-zA-Z0-9_]*)\s*\((.*)\)$", s)
+    # m = re.match(r"^([a-z0-9][a-zA-Z0-9_]*)\s*\((.*)\)$", s)
+    m = re.match(r"^([a-z0-9가-힣][a-zA-Z0-9가-힣_]*)\s*\((.*)\)$", s)
     if (
         "=" in s
         and "=:=" not in s
-        and "=\\=" not in s
+        and "=\=" not in s
         and "=<" not in s
         and ">=" not in s
+        and ":=" not in s
     ):
         equals_pos = s.find("=")
 
         if (
             equals_pos > 0
             and equals_pos < len(s) - 1
-            and s[equals_pos - 1 : equals_pos + 2] not in ["=:=", "=\\="]
+            and s[equals_pos - 1 : equals_pos + 2] not in ["=:=", "=\="]
             and s[equals_pos : equals_pos + 2] not in ["=<"]
         ):
             left_part = s[:equals_pos].strip()
@@ -290,10 +297,10 @@ def parse_struct(s: str) -> Term:
         args_str = m.group(2)
 
         # Special handling for findall
-        if name == "findall":
+        if name == "findall" or name == "모두찾기":
             parts = split_args(args_str)
             if len(parts) != 3:
-                raise ErrUnknownPredicate("findall", len(parts))
+                raise ErrUnknownPredicate("초기화", len(parts))
 
             template = parse_term(parts[0])
             result_bag = parse_term(parts[2])
@@ -309,13 +316,13 @@ def parse_struct(s: str) -> Term:
             return Struct(name, len(params), params)
     else:
         if not s:
-            raise ErrInvalidTerm("Empty term")
+            raise ErrInvalidTerm("빈 항")
         if any(op in s for op in arithmetic_ops):
             try:
                 result = parse_arithmetic_expression(s)
                 return result
             except ErrProlog as e:
-                handle_error(e, "parsing arithmetic expression")
+                handle_error(e, "산술 표현식 구문 분석")
 
         elif s[0].isupper() or s[0] == "_":
             return Variable(s)  # TODO need variable checking
@@ -331,18 +338,19 @@ def parse_term(s: str) -> Term:
         op in s
         for op in [
             "is",
+            ":=",
             "+",
             "-",
             "*",
             "/",
             "//",
-            "mod",
+            "나머지",
             ">",
             "<",
             ">=",
             "=<",
             "=:=",
-            "=\\=",
+            "=\=",
         ]
     ):
         return parse_struct(s)
@@ -379,7 +387,7 @@ def parse_line(line: str) -> List[Term]:
     if not stripped:
         return []
     if not stripped.endswith("."):
-        raise ErrCommandFormat(f"Line must end with '.': {line}")
+        raise ErrCommandFormat(f"{line}은 마침표로 끝나야 합니다")
     body = stripped[:-1]
     if ":-" in body:
         head_str, tail_str = body.split(":-", 1)

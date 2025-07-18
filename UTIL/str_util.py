@@ -86,6 +86,7 @@ def struct_to_infix(term: Term) -> str:
         "=<",
         "=",
         "is",
+        ":=",
     ]
 
     if term.arity > 0:

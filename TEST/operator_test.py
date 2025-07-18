@@ -50,7 +50,7 @@ class TestKProlog(unittest.TestCase):
             "Z is 3 * 4.",  # Testing multiplication, should be 12
             "W is 15 / 3.",  # Testing division, should be 5
             "A is 17 // 5.",  # Testing integer division, should be 3
-            "B is 17 mod 5.",  # Testing mod, should be 2
+            "B is 17 나머지 5.",  # Testing mod, should be 2
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
@@ -78,7 +78,7 @@ class TestKProlog(unittest.TestCase):
     def test_comparison_operators(self):
         commands = [
             "5 =:= 2 + 3.",  # Testing =:=, should be True
-            "5 =\\= 6.",  # Testing =\\=, should be True
+            "5 =\= 6.",  # Testing =\\=, should be True
             "3 < 5.",  # Testing <, should be True
             "5 > 3.",  # Testing >, should be True
             "5 >= 5.",  # Testing >=, should be True

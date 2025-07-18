@@ -1,3 +1,4 @@
+# coding: utf-8
 from typing import Dict, List, Tuple
 
 from err import (
@@ -28,14 +29,14 @@ def handle_is(
     goal: Struct, rest_goals: List[Term], old_unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 2:
-        raise ErrUnknownPredicate("is", len(goal.params))
+        raise ErrUnknownPredicate(":=", len(goal.params))
 
     left, right = goal.params
     try:
         result = evaluate_arithmetic(right, old_unif)
 
         if isinstance(result, Variable):
-            raise ErrUninstantiated(result.name, "Arithmetic Expression")
+            raise ErrUninstantiated(result.name, "산술 표현식")
 
         result_term = Struct(
             str(int(result) if result.is_integer() else result), 0, []
@@ -45,7 +46,7 @@ def handle_is(
         return success, rest_goals, [new_unif] if success else []
 
     except ErrProlog as e:
-        handle_error(e, "is predicate")
+        handle_error(e, ":= 내장함수")
         return False, [], []
 
 
@@ -53,7 +54,7 @@ def evaluate_arithmetic(expr: Term, unif: Dict[str, Term]) -> float:
     expr = substitute_term(unif, expr)
 
     if isinstance(expr, Variable):
-        raise ErrUninstantiated(expr.name, "Arithmetic Expression")
+        raise ErrUninstantiated(expr.name, "산술 표현식")
     elif isinstance(expr, Struct):
         if expr.arity == 0:
             try:
@@ -77,7 +78,7 @@ def evaluate_arithmetic(expr: Term, unif: Dict[str, Term]) -> float:
                 if right_val == 0:
                     raise ErrDivisionByZero()
                 return float(int(left_val // right_val))
-            elif expr.name == "mod":
+            elif expr.name == "나머지":
                 if right_val == 0:
                     raise ErrDivisionByZero()
                 return left_val % right_val
@@ -110,7 +111,7 @@ def handle_comparison(
         right = evaluate_arithmetic(right, unif)
 
     except ErrProlog as e:
-        handle_error(e, "arithmetic evaluation")
+        handle_error(e, "산술 계산")
 
     if goal.name == ">":
         success = left > right
@@ -122,7 +123,7 @@ def handle_comparison(
         success = left <= right
     elif goal.name == "=:=":
         success = left == right
-    elif goal.name == "=\\=":
+    elif goal.name == "=\=":
         success = left != right
     else:
         return False, [], []
@@ -145,9 +146,8 @@ def handle_equals(
 def handle_write(  # need to take care of string
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
-    print("in write")
     if len(goal.params) != 1:
-        raise ErrUnknownPredicate("write", len(goal.params))
+        raise ErrUnknownPredicate("쓰기", len(goal.params))
 
     writeStr = str(goal.params[0])
     new_unif = extract_variable([writeStr], unif)
@@ -178,7 +178,7 @@ def handle_read(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 1:
-        raise ErrUnknownPredicate("read", len(goal.params))
+        raise ErrUnknownPredicate("읽기", len(goal.params))
 
     var = goal.params[0]
 
@@ -218,7 +218,7 @@ def handle_atomic(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 1:
-        raise ErrUnknownPredicate("atomic", len(goal.params))
+        raise ErrUnknownPredicate("단순", len(goal.params))
 
     param = goal.params[0]
     if (
@@ -236,7 +236,7 @@ def handle_integer(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 1 or goal.params[0].arity != 0:
-        raise ErrUnknownPredicate("integer", len(goal.params))
+        raise ErrUnknownPredicate("정수", len(goal.params))
 
     try:
         int(goal.params[0].name)
@@ -249,7 +249,7 @@ def handle_nl(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 0:
-        raise ErrUnknownPredicate("nl", len(goal.params))
+        raise ErrUnknownPredicate("줄바꿈", len(goal.params))
 
     print()
     return True, rest_goals, [unif]
@@ -259,7 +259,7 @@ def handle_writeln(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 1:
-        raise ErrUnknownPredicate("writeln", len(goal.params))
+        raise ErrUnknownPredicate("쓰고줄바꿈", len(goal.params))
 
     success, goals, new_unif = handle_write(goal, rest_goals, unif)
     # print()
@@ -271,7 +271,7 @@ def handle_number(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 1:
-        raise ErrUnknownPredicate("number", len(goal.params))
+        raise ErrUnknownPredicate("수", len(goal.params))
 
     if goal.params[0].name.isnumeric():
         return True, rest_goals, [unif]
@@ -279,19 +279,9 @@ def handle_number(
     return False, rest_goals, [unif]
 
 
-# def handle_initialization(
-#     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
-# ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
-#     if len(goal.params) != 1:
-#         raise ErrUnknownPredicate("initialization", len(goal.params))
-
-#     if goal.params[0].name.isnumeric():
-#         return True, rest_goals, [unif]
-
-#     return False, rest_goals, [unif]
-
 BUILTINS = {
     "is": handle_is,
+    ":=": handle_is,
     ">": handle_comparison,
     "<": handle_comparison,
     ">=": handle_comparison,
@@ -300,16 +290,25 @@ BUILTINS = {
     "=\=": handle_comparison,
     "=": handle_equals,
     "append": handle_list_append,
+    "접합": handle_list_append,
     "length": handle_list_length,
+    "길이": handle_list_length,
     "permutation": handle_list_permutation,
+    "순열": handle_list_permutation,
     "write": handle_write,
+    "쓰기": handle_write,
     "writeln": handle_writeln,
+    "쓰고줄바꿈": handle_writeln,
     "read": handle_read,
+    "읽기": handle_read,
     "atomic": handle_atomic,
+    "단순": handle_atomic,
     "integer": handle_integer,
+    "정수": handle_integer,
     "nl": handle_nl,
+    "줄바꿈": handle_nl,
     "number": handle_number,
-    # "initialization": handle_initialization,  # don't know behavior when is not passed in as file
+    "수": handle_number,
 }
 
 
