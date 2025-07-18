@@ -116,6 +116,42 @@ def handle_findall(
         return False, [], []
 
 
+def handle_arrow(
+    goal: Struct,
+    rest_goals: List[Term],
+    unif: Dict[str, Term],
+    program: List[List[Term]],
+    debug_state: DebugState,
+    seq: int,
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) not in [2, 3]:
+        raise ErrUnknownPredicate("->", len(goal.params))
+
+    try:
+        success, new_unifs, new_seq = solve_with_unification(
+            program, [goal.params[0]], unif, seq, debug_state
+        )
+
+        if success:
+            condition_unif = new_unifs[0] if new_unifs else unif
+            then_success, then_unifs, then_seq = solve_with_unification(
+                program, [goal.params[1]], condition_unif, new_seq, debug_state
+            )
+            return then_success, rest_goals, then_unifs
+        else:
+            if len(goal.params) == 3:
+                else_success, else_unifs, else_seq = solve_with_unification(
+                    program, [goal.params[2]], unif, seq, debug_state
+                )
+                return else_success, rest_goals, else_unifs
+            else:
+                return False, rest_goals, []
+
+    except ErrProlog as e:
+        handle_error(e, "-> predicate")
+        return False, rest_goals, []
+
+
 def solve_with_unification(
     program: List[List[Term]],
     goals: List[Term],
@@ -190,11 +226,15 @@ def solve_with_unification(
                 )
 
         if isinstance(x, Struct) and (
-            (x.name == "findall" or x.name == "모두 찾기")
+            (x.name == "findall" or x.name == "모두 찾기" or x.name == "->")
             or has_builtin(x.name)
         ):
             if x.name == "findall":
                 success, new_goals, new_unifications = handle_findall(
+                    x, rest, old_unif, program, debug_state, seq
+                )
+            elif x.name == "->":
+                success, new_goals, new_unifications = handle_arrow(
                     x, rest, old_unif, program, debug_state, seq
                 )
             else:

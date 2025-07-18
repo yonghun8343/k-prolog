@@ -308,6 +308,55 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("거짓", stdout)
         self.assertIn("참", stdout)
 
+    # TODO these are not in the english version
+    def test_arrow_if_then_only(self):
+        content = """
+        양수인지(_엑스) :- _엑스 > 0 -> 쓰기('양수입니다').
+        음수인지(_엑스) :- _엑스 < 0 -> 쓰기('음수입니다').
+        """
+
+        self.create_test_file("조건부.pl", content)
+
+        commands = [
+            "[조건부].",
+            "양수인지(5).",  # Should succeed and write '양수입니다'
+            "양수인지(-3).",  # Should fail (condition false, no else)
+            "음수인지(-2).",  # Should succeed and write '음수입니다'
+            "음수인지(4).",  # Should fail (condition false, no else)
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("조건부.pl에서 적재했습니다", stdout)
+        self.assertIn("양수입니다", stdout)
+        self.assertIn("음수입니다", stdout)
+        self.assertIn("참", stdout)  # For successful cases
+        self.assertIn("거짓", stdout)  # For failed cases
+
+    def test_arrow_if_then_else(self):
+        content = """
+        절댓값(_엑스, _결과) :- (_엑스 >= 0 -> _결과 = _엑스 ; _결과 := -1 * _엑스).
+        최대값(_에이, _비, _최대) :- (_에이 >= _비 -> _최대 = _에이 ; _최대 = _비).
+        """
+
+        self.create_test_file("조건문.pl", content)
+
+        commands = [
+            "[조건문].",
+            "절댓값(5, _결과1).",  # Should give _결과1 = 5
+            "절댓값(-3, _결과2).",  # Should give _결과2 = 3
+            "최대값(7, 4, _최대1).",  # Should give _최대1 = 7
+            "최대값(2, 8, _최대2).",  # Should give _최대2 = 8
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("조건문.pl에서 적재했습니다", stdout)
+        self.assertIn("_결과1 = 5", stdout)
+        self.assertIn("_결과2 = 3", stdout)
+        self.assertIn("_최대1 = 7", stdout)
+        self.assertIn("_최대2 = 8", stdout)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

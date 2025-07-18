@@ -226,6 +226,35 @@ def parse_list(s: str) -> Term:
 
 def parse_struct(s: str) -> Term:
     s = s.strip()
+    if s.startswith("(") and s.endswith(")"):
+        inner_content = s[1:-1].strip()
+        if "," in inner_content and has_top_level_comma(inner_content):
+            parts = split_args(inner_content)
+            goals = [parse_struct(part.strip()) for part in parts]
+
+            if len(goals) == 1:
+                return goals[0]
+            else:
+                result = goals[0]
+                for goal in goals[1:]:
+                    result = Struct(",", 2, [result, goal])
+                return result
+        else:
+            return parse_struct(inner_content)
+    if "->" in s:
+        arrow_pos = s.find("->")
+        condition = s[:arrow_pos].strip()
+        condition_term = parse_struct(condition)
+
+        action = s[arrow_pos + 2 :].strip()
+        if ";" in action:
+            actions = action.split(";")
+            action_terms = [parse_struct(a) for a in actions]
+            return Struct("->", 3, [condition_term] + action_terms)
+        else:
+            action_term = parse_struct(action)
+            return Struct("->", 2, [condition_term, action_term])
+
     arithmetic_ops = [
         "+",
         "-",
@@ -277,21 +306,6 @@ def parse_struct(s: str) -> Term:
             return Struct("=", 2, [left_term, right_term])
     elif s.startswith("[") and s.endswith("]"):
         return parse_list(s)
-    elif s.startswith("(") and s.endswith(")"):
-        inner_content = s[1:-1].strip()
-        if "," in inner_content and has_top_level_comma(inner_content):
-            parts = split_args(inner_content)
-            goals = [parse_struct(part.strip()) for part in parts]
-
-            if len(goals) == 1:
-                return goals[0]
-            else:
-                result = goals[0]
-                for goal in goals[1:]:
-                    result = Struct(",", 2, [result, goal])
-                return result
-        else:
-            return parse_struct(inner_content)
     elif m:
         name = m.group(1)
         args_str = m.group(2)
@@ -393,14 +407,14 @@ def parse_line(line: str) -> List[Term]:
         head_str, tail_str = body.split(":-", 1)
         head = parse_struct(head_str.strip())
 
-        if ";" in tail_str:
+        if (";" in tail_str) and ("->" not in tail_str):
             return flatten_semicolons(head, tail_str)
         else:
             parts = split_args(tail_str)
             tails = [parse_struct(part.strip()) for part in parts]
             return [head] + tails
     else:
-        if ";" in body:
+        if (";" in body) and ("->" not in body):
             return flatten_semicolons(None, body)
         else:
             parts = split_args(body)
