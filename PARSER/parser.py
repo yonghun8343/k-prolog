@@ -317,11 +317,14 @@ def parse_struct(s: str) -> Term:
                 raise ErrUnknownPredicate("초기화", len(parts))
 
             template = parse_term(parts[0])
+            # template = parts[0].strip()
             result_bag = parse_term(parts[2])
             query_str = parts[1].strip()
 
-            if query_str.startswith("(") and query_str.endswith(")"):
-                query_str = query_str[1:-1].strip()
+            # if query_str.startswith("(") and query_str.endswith(")"):
+            #     query_str = query_str[1:-1].strip()
+
+            query_str = parse_struct(query_str)
 
             return Struct("findall", 3, [template, query_str, result_bag])
         else:

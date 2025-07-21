@@ -1,3 +1,4 @@
+import sys
 from typing import List, Tuple
 
 from err import (
@@ -15,7 +16,7 @@ from PARSER.ast import Struct, Term
 from PARSER.parser import parse_string
 from SOLVER.solver import solve
 from UTIL.debug import DebugState
-from UTIL.str_util import format_term, term_to_string
+from UTIL.str_util import format_term, term_to_string, flatten_comma_structure
 
 
 class Command:
@@ -168,15 +169,6 @@ def parse_file_multiline(
             raise ErrSyntax(f"'{statement}': {e}") from e
 
     return clauses, pending_goals
-
-
-def flatten_comma_structure(term: Term) -> List[Term]:
-    if isinstance(term, Struct) and term.name == "," and term.arity == 2:
-        left_goals = flatten_comma_structure(term.params[0])
-        right_goals = flatten_comma_structure(term.params[1])
-        return left_goals + right_goals
-    else:
-        return [term]
 
 
 def execute_pending_initializations(

@@ -4,6 +4,15 @@ from PARSER.ast import Struct, Term, Variable
 # from PARSER.parser import parse_struct
 
 
+def flatten_comma_structure(term: Term) -> List[Term]:
+    if isinstance(term, Struct) and term.name == "," and term.arity == 2:
+        left_goals = flatten_comma_structure(term.params[0])
+        right_goals = flatten_comma_structure(term.params[1])
+        return left_goals + right_goals
+    else:
+        return [term]
+
+
 # def string_to_infix(writeStr: str) -> str:
 #     struct_form = parse_struct(writeStr)
 #     return struct_to_infix(struct_form)

@@ -1,0 +1,2 @@
+main :- halt.
+:- initialization(main).

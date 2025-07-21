@@ -280,6 +280,7 @@ def handle_number(
 
 
 BUILTINS = {
+    "halt": None,
     "is": handle_is,
     ":=": handle_is,
     ">": handle_comparison,
@@ -319,6 +320,13 @@ def has_builtin(builtin: str) -> bool:
 def handle_builtins(
     goal: Struct, rest_goals: List[Term], old_unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if goal.name == "halt" or goal.name == "종료":
+        if goal.arity == 0:
+            import sys
+
+            sys.exit(0)
+        else:
+            raise ErrUnknownPredicate("종료", goal.arity)
     if goal.name not in BUILTINS:
         return False, [], []
     return BUILTINS[goal.name](goal, rest_goals, old_unif)

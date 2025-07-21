@@ -16,6 +16,7 @@ from UTIL.debug import (
     show_call_trace,
     show_exit_trace,
 )
+from UTIL.str_util import flatten_comma_structure
 
 from .builtin import handle_builtins, has_builtin
 from .unification import (
@@ -91,15 +92,23 @@ def handle_findall(
     template, query_goal, result_bag = goal.params
 
     try:
-        parsed_goals = parse_line(query_goal + ".")
+        if query_goal.name == "," and goal.arity == 2:
+            flattened_goals = flatten_comma_structure(query_goal)
 
-        if not parsed_goals:
-            result_list = PrologList([]).to_struct()
-            return True, result_list, seq
-
-        success, new_unifs, final_seq = solve_with_unification(
-            program, parsed_goals, unif, seq, debug_state
-        )
+        substituted_query = substitute_term(unif, query_goal)
+        if (
+            isinstance(substituted_query, Struct)
+            and substituted_query.name == ","
+            and substituted_query.arity == 2
+        ):
+            flattened_goals = flatten_comma_structure(substituted_query)
+            success, new_unifs, final_seq = solve_with_unification(
+                program, flattened_goals, {}, seq, debug_state
+            )
+        else:
+            success, new_unifs, final_seq = solve_with_unification(
+                program, [substituted_query], unif, seq, debug_state
+            )
 
         solutions = []
         if success:
@@ -109,10 +118,11 @@ def handle_findall(
 
         result_list = PrologList(solutions).to_struct()
         success, final_unif = match_params([result_bag], [result_list], unif)
+
         return success, rest_goals, [final_unif]
 
     except ErrProlog as e:
-        handle_error(e, "findall predicate")
+        handle_error(e, "모구찾기")
         return False, [], []
 
 
