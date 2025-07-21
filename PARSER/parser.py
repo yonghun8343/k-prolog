@@ -20,7 +20,12 @@ from PARSER.Data.list import PrologList
 def has_top_level_comma(s: str) -> bool:
     depth = 0
     bracket_depth = 0
-    for ch in s:
+    inside_if_then_else = False
+
+    i = 0
+    while i < len(s):
+        ch = s[i]
+
         if ch == "(":
             depth += 1
         elif ch == ")":
@@ -29,8 +34,18 @@ def has_top_level_comma(s: str) -> bool:
             bracket_depth += 1
         elif ch == "]":
             bracket_depth -= 1
-        elif ch == "," and depth == 0 and bracket_depth == 0:
+        elif s[i : i + 2] == "->":
+            if depth == 0 and bracket_depth == 0:
+                inside_if_then_else = True
+            i += 1
+        elif (
+            ch == ","
+            and depth == 0
+            and bracket_depth == 0
+            and not inside_if_then_else
+        ):
             return True
+        i += 1
     return False
 
 
@@ -241,15 +256,26 @@ def parse_struct(s: str) -> Term:
                 return result
         else:
             return parse_struct(inner_content)
+    elif "," in s and has_top_level_comma(s) and "->" not in s:
+        parts = split_args(s)
+        goals = [parse_struct(part.strip()) for part in parts]
+        if len(goals) == 1:
+            return goals[0]
+        else:
+            result = goals[0]
+            for goal in goals[1:]:
+                result = Struct(",", 2, [result, goal])
+            return result
     if "->" in s:
         arrow_pos = s.find("->")
         condition = s[:arrow_pos].strip()
+
         condition_term = parse_struct(condition)
 
         action = s[arrow_pos + 2 :].strip()
         if ";" in action:
             actions = action.split(";")
-            action_terms = [parse_struct(a) for a in actions]
+            action_terms = [parse_struct(a.strip()) for a in actions]
             return Struct("->", 3, [condition_term] + action_terms)
         else:
             action_term = parse_struct(action)

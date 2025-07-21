@@ -65,7 +65,11 @@ def match_predicate(
 
 
 # rename all variables in a clause to avoid conflicts
-def init_rules(clause: List[Term], counter: int) -> Tuple[List[Term], int]:
+def init_rules(
+    clause: List[Term], debug_state: DebugState
+) -> Tuple[List[Term], int]:
+    counter = debug_state.seq
+    debug_state.seq += 100
     vars_in_clause = get_variables(clause)
     var_map = {}
     current_counter = counter
@@ -180,6 +184,11 @@ def solve_with_unification(
     debug_state.call_depth += 1
 
     try:
+        if isinstance(x, Struct) and x.name == "," and x.arity == 2:
+            flattened_goals = flatten_comma_structure(x)
+            return solve_with_unification(
+                program, flattened_goals + rest, old_unif, seq, debug_state
+            )
         if (
             isinstance(x, Struct)
             and ((x.name == "fail") or (x.name == "포기"))
@@ -253,7 +262,11 @@ def solve_with_unification(
                 )
             if success:
                 all_solutions = []
+                # print(f"Processing {len(new_unifications)} unifications")
+                i = 0
                 for unif in new_unifications:
+                    # print(f"Processing unification {i}: {unif}")
+                    i += 1
                     success, solutions, final_seq = solve_with_unification(
                         program,
                         new_goals,
@@ -261,6 +274,9 @@ def solve_with_unification(
                         seq,
                         debug_state,
                     )
+                    # print(
+                    #     f"Recursive call returned: success={success}, solutions={solutions}"
+                    # )
                     if success:
                         all_solutions.extend(solutions)
                         if any(
@@ -284,10 +300,12 @@ def solve_with_unification(
                 return bool(all_solutions), all_solutions, seq
 
         clauses = [c for c in program if is_relevant(x, c)]
+        # print(f"clauses is {clauses}")
         all_solutions = []
 
         for clause in clauses:
-            renamed_clause, new_seq = init_rules(clause, seq)
+            debug_state.seq += 1000
+            renamed_clause, new_seq = init_rules(clause, debug_state)
             seq = new_seq
             is_match, new_goals, unif = match_predicate(
                 x, rest, old_unif, renamed_clause
@@ -301,7 +319,7 @@ def solve_with_unification(
                     seq,
                     debug_state,
                 )
-
+                # print(f"solutions is {solutions}, success is {success}")
                 seq = final_seq
 
                 if any(
@@ -312,6 +330,7 @@ def solve_with_unification(
 
                     return success, solutions, final_seq
                 if success:
+                    # print("success")
                     all_solutions.extend(solutions)
 
         if debug_state.trace_mode and all_solutions:

@@ -153,7 +153,7 @@ def handle_write(  # need to take care of string
     new_unif = extract_variable([writeStr], unif)
     if new_unif:
         print(new_unif.get(writeStr))
-        return True, rest_goals, [new_unif]
+        return True, rest_goals, [unif]
 
     if writeStr.startswith('"') and writeStr.endswith('"'):
         print(writeStr[1:-1])

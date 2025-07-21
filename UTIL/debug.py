@@ -2,6 +2,7 @@ class DebugState:
     def __init__(self):
         self.trace_mode = False
         self.call_depth = 0
+        self.seq = 0
 
 
 class DebugAbort(Exception):
