@@ -151,6 +151,44 @@ def handle_setof(goal, rest_goals, unif, program, debug_state):
     return False, rest_goals, []
 
 
+def handle_forall(goal, rest_goals, unif, program, debug_state):
+    print("reached here")
+    if len(goal.params) != 2:
+        raise ErrUnknownPredicate("forall", len(goal.params))
+
+    generator, test = goal.params
+    result_var = Variable("_Result")  # temporary variable name
+
+    findall_goal = Struct("findall", 3, [generator, generator, result_var])
+
+    findall_success, _, findall_unifs = handle_findall(
+        findall_goal, [], unif.copy(), program, debug_state
+    )
+
+    if not findall_success or not findall_unifs:
+        # generator failed or had no solutions means vacuously true
+        return True, rest_goals, [unif]
+
+    print(f"findall unifs is {findall_unifs}")
+    result_struct = findall_unifs[0][result_var.name]
+    generator_results = extract_list(result_struct)
+
+    for result in generator_results:
+        ok, test_unif = match_params([generator], [result], {})
+        if not ok:
+            return False, [], []
+
+        test_instantiated = substitute_term(test_unif, test)
+
+        success, _ = solve_with_unification(
+            program, [test_instantiated], {}, debug_state
+        )
+        if not success:
+            return False, [], []
+
+    return True, rest_goals, [unif]
+
+
 def handle_arrow(
     goal: Struct,
     rest_goals: List[Term],
@@ -262,21 +300,19 @@ def solve_with_unification(
                 )
 
         if isinstance(x, Struct) and (
-            (x.name == "findall" or x.name == "setof" or x.name == "->")
+            x.name in {"findall", "setof", "forall", "->"}
             or has_builtin(x.name)
         ):
-            if x.name == "findall":
-                success, new_goals, new_unifications = handle_findall(
-                    x, rest, old_unif, program, debug_state
-                )
-            elif x.name == "setof":
-                success, new_goals, new_unifications = handle_setof(
-                    x, rest, old_unif, program, debug_state
-                )
-            elif x.name == "->":
-                success, new_goals, new_unifications = handle_arrow(
-                    x, rest, old_unif, program, debug_state
-                )
+            internal_handlers = {
+                "findall": handle_findall,
+                "setof": handle_setof,
+                "forall": handle_forall,
+                "->": handle_arrow,
+            }
+            if x.name in internal_handlers:
+                success, new_goals, new_unifications = internal_handlers.get(
+                    x.name
+                )(x, rest, old_unif, program, debug_state)
             else:
                 success, new_goals, new_unifications = handle_builtins(
                     x, rest, old_unif

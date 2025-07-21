@@ -489,6 +489,65 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("_집합동물 = [개, 고양이]", stdout)
         self.assertIn("_모든새 = []", stdout)
 
+    def test_forall_success(self):
+        content = """likes(alice, apples).
+                    likes(alice, bananas).
+                    likes(alice, cherries).
+                    fruit(apples).
+                    fruit(bananas).
+                    fruit(cherries).
+                """
+
+        self.create_test_file("forall_success.pl", content)
+
+        commands = ["[forall_success].", "forall(likes(alice, X), fruit(X))."]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("참", stdout)
+
+    def test_forall_failure(self):
+        content = """likes(bob, apples).
+                    likes(bob, icecream).
+                    fruit(apples).
+                """
+
+        self.create_test_file("forall_failure.pl", content)
+
+        commands = ["[forall_failure].", "forall(likes(bob, X), fruit(X))."]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("거짓", stdout)
+
+    def test_forall_vacuous(self):
+        content = """fruit(apples).
+                    fruit(bananas).
+                """  # No likes(claire, _) facts
+
+        self.create_test_file("forall_vacuous.pl", content)
+
+        commands = ["[forall_vacuous].", "forall(likes(claire, X), fruit(X))."]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("참", stdout)
+
+    def test_forall_nested_test(self):
+        content = """parent(john, mary).
+                    parent(john, bob).
+                    human(mary).
+                    human(bob).
+                """
+
+        self.create_test_file("forall_nested.pl", content)
+
+        commands = ["[forall_nested].", "forall(parent(john, X), human(X))."]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("참", stdout)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

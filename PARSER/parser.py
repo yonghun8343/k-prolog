@@ -345,21 +345,27 @@ def parse_struct(s: str) -> Term:
         ):
             parts = split_args(args_str)
             if len(parts) != 3:
-                raise ErrUnknownPredicate("초기화", len(parts))
+                raise ErrUnknownPredicate(name, len(parts))
 
             template = parse_term(parts[0])
-            # template = parts[0].strip()
             result_bag = parse_term(parts[2])
             query_str = parts[1].strip()
-
-            # if query_str.startswith("(") and query_str.endswith(")"):
-            #     query_str = query_str[1:-1].strip()
-
             query_str = parse_struct(query_str)
+
             if name == "findall" or name == "모두찾기":
                 return Struct("findall", 3, [template, query_str, result_bag])
             else:
                 return Struct("setof", 3, [template, query_str, result_bag])
+        elif name == "forall":
+            parts = split_args(args_str)
+            if len(parts) != 2:
+                raise ErrUnknownPredicate(name, len(parts))
+
+            generator = parse_struct(parts[0].strip())
+            test = parse_struct(parts[1].strip())
+            print(f"generator is {generator}, test is {test}")
+
+            return Struct("forall", 2, [generator, test])
         elif (
             name == "writeln"
             or name == "write"
