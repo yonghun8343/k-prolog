@@ -8,7 +8,7 @@ from err import (
     handle_error,
 )
 from PARSER.ast import Struct, Term, Variable
-from PARSER.Data.list import PrologList
+from PARSER.Data.list import PrologList, extract_list
 from PARSER.parser import parse_line
 from UTIL.debug import (
     DebugState,
@@ -127,6 +127,30 @@ def handle_findall(
         return False, [], []
 
 
+def handle_setof(goal, rest_goals, unif, program, debug_state):
+    # Use your existing findall logic
+    success, findall_goals, findall_unifs = handle_findall(
+        goal, rest_goals, unif, program, debug_state
+    )
+
+    if success and findall_unifs:
+        # Extract the list from findall result
+        result_list = findall_unifs[0][goal.params[2].name]  # The bag
+        python_list = extract_list(result_list)
+        unique_sorted = sorted(set(python_list))  # Remove dups + sort
+
+        # Convert back to Prolog list
+        setof_result = PrologList(unique_sorted).to_struct()
+
+        # Update unification
+        final_unif = findall_unifs[0].copy()
+        final_unif[goal.params[2].name] = setof_result
+
+        return len(unique_sorted) > 0, rest_goals, [final_unif]  # Fail if empty
+
+    return False, rest_goals, []
+
+
 def handle_arrow(
     goal: Struct,
     rest_goals: List[Term],
@@ -238,11 +262,15 @@ def solve_with_unification(
                 )
 
         if isinstance(x, Struct) and (
-            (x.name == "findall" or x.name == "모두 찾기" or x.name == "->")
+            (x.name == "findall" or x.name == "setof" or x.name == "->")
             or has_builtin(x.name)
         ):
             if x.name == "findall":
                 success, new_goals, new_unifications = handle_findall(
+                    x, rest, old_unif, program, debug_state
+                )
+            elif x.name == "setof":
+                success, new_goals, new_unifications = handle_setof(
                     x, rest, old_unif, program, debug_state
                 )
             elif x.name == "->":

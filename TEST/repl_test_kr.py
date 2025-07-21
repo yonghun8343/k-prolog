@@ -337,6 +337,22 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("_Q = [20]", stdout)
         self.assertIn("_R = [3]", stdout)
 
+    def test_findall_multiple(self):
+        content = """father(alan, jim).
+                     father(alan, carry).
+                     father(alan, mary)."""
+        self.create_test_file("multiple.pl", content)
+
+        commands = [
+            "[multiple].",
+            "모두찾기(C, father(alan, C), Children).",  # Single solution
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("multiple.pl에서 적재했습니다", stdout)
+        self.assertIn("Children = [jim, carry, mary]", stdout)
+
     def test_findall_compound_goals(self):
         commands = [
             "모두찾기(_X, (_X := 3, _X > 2), _L).",  # Compound goal with comma
@@ -392,6 +408,87 @@ class TestKProlog(unittest.TestCase):
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
         self.assertIn("5", stdout)
+
+    def test_setof_basic_functionality(self):
+        content = """
+        좋아함(mary, pizza).
+        좋아함(mary, pasta).
+        좋아함(mary, pizza).
+        좋아함(john, pizza).
+        좋아함(john, salad).
+        좋아함(sue, pasta).
+        
+        숫자(1).
+        숫자(3).
+        숫자(2).
+        숫자(1).
+        숫자(3).
+        """
+
+        self.create_test_file("집합.pl", content)
+
+        commands = [
+            "[집합].",
+            # Test duplicate removal and sorting
+            "집합(_X, 좋아함(mary, _X), _결과1).",
+            # Test with numbers (sorting)
+            "집합(_Y, 숫자(_Y), _결과2).",
+            # Test failure when no solutions
+            "집합(_Z, 좋아함(bob, _Z), _결과3).",
+            # Test single result
+            "집합(_W, 좋아함(sue, _W), _결과4).",
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("집합.pl에서 적재했습니다", stdout)
+        self.assertIn("_결과1 = [pasta, pizza]", stdout)
+        self.assertIn("_결과2 = [1, 2, 3]", stdout)
+        self.assertIn("거짓", stdout)
+        self.assertIn("_결과4 = [pasta]", stdout)
+
+    def test_setof_vs_findall_comparison(self):
+        """Test setof behavior compared to findall - demonstrates key differences"""
+        content = """
+        색깔(빨강).
+        색깔(파랑).
+        색깔(빨강).
+        색깔(초록).
+        색깔(파랑).
+        
+        동물(개).
+        동물(고양이).
+        동물(개).
+        """
+
+        self.create_test_file("비교.pl", content)
+
+        commands = [
+            "[비교].",
+            # Compare findall vs setof for same query
+            "모두찾기(_색, 색깔(_색), _모든색깔).",
+            "집합(_색, 색깔(_색), _집합색깔).",
+            # Test with different data
+            "모두찾기(_동물, 동물(_동물), _모든동물).",
+            "집합(_동물, 동물(_동물), _집합동물).",
+            # Test empty case - findall succeeds, setof fails
+            "모두찾기(_새, 새(_새), _모든새).",
+            "집합(_새, 새(_새), _집합새).",
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("비교.pl에서 적재했습니다", stdout)
+
+        self.assertIn("_모든색깔 = [빨강, 파랑, 빨강, 초록, 파랑]", stdout)
+
+        self.assertIn("_집합색깔 = [", stdout)
+        self.assertIn("빨강", stdout)
+        self.assertIn("파랑", stdout)
+        self.assertIn("초록", stdout)
+        self.assertIn("_모든동물 = [개, 고양이, 개]", stdout)
+        self.assertIn("_집합동물 = [개, 고양이]", stdout)
+        self.assertIn("_모든새 = []", stdout)
 
 
 if __name__ == "__main__":

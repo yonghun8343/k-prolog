@@ -8,10 +8,9 @@ gcd(X, Y, G) :-
         gcd(Y, D, G)).
 
 lcm(X, Y, L) :-
-    write(X), write(Y),
     gcd(X, Y, G),
-    write("G:"), write(G),
-    L is (X * Y) // G.
+    P is X * Y,
+    L is P // G.
 
 main :-
     read(X),

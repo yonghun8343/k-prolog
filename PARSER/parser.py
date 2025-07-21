@@ -337,7 +337,12 @@ def parse_struct(s: str) -> Term:
         args_str = m.group(2)
 
         # Special handling for findall
-        if name == "findall" or name == "모두찾기":
+        if (
+            name == "findall"
+            or name == "모두찾기"
+            or name == "setof"
+            or name == "집합"
+        ):
             parts = split_args(args_str)
             if len(parts) != 3:
                 raise ErrUnknownPredicate("초기화", len(parts))
@@ -351,8 +356,10 @@ def parse_struct(s: str) -> Term:
             #     query_str = query_str[1:-1].strip()
 
             query_str = parse_struct(query_str)
-
-            return Struct("findall", 3, [template, query_str, result_bag])
+            if name == "findall" or name == "모두찾기":
+                return Struct("findall", 3, [template, query_str, result_bag])
+            else:
+                return Struct("setof", 3, [template, query_str, result_bag])
         else:
             parts = split_args(args_str)
             params = [parse_term(p) for p in parts]
