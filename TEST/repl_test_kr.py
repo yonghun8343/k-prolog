@@ -448,7 +448,6 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("_결과4 = [pasta]", stdout)
 
     def test_setof_vs_findall_comparison(self):
-        """Test setof behavior compared to findall - demonstrates key differences"""
         content = """
         색깔(빨강).
         색깔(파랑).
