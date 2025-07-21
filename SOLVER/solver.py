@@ -65,9 +65,7 @@ def match_predicate(
 
 
 # rename all variables in a clause to avoid conflicts
-def init_rules(
-    clause: List[Term], debug_state: DebugState
-) -> Tuple[List[Term], int]:
+def init_rules(clause: List[Term], debug_state: DebugState) -> List[Term]:
     counter = debug_state.seq
     debug_state.seq += 100
     vars_in_clause = get_variables(clause)
@@ -80,7 +78,7 @@ def init_rules(
             current_counter += 1
 
     renamed_clause = [substitute_term(var_map, term) for term in clause]
-    return renamed_clause, current_counter
+    return renamed_clause
 
 
 def handle_findall(
@@ -89,14 +87,13 @@ def handle_findall(
     unif: Dict[str, Term],
     program: List[List[Term]],
     debug_state: DebugState,
-    seq: int,
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 3:
         raise ErrUnknownPredicate("모두찾기", len(goal.params))
     template, query_goal, result_bag = goal.params
 
     try:
-        if query_goal.name == "," and goal.arity == 2:
+        if query_goal.name == "," and query_goal.arity == 2:
             flattened_goals = flatten_comma_structure(query_goal)
 
         substituted_query = substitute_term(unif, query_goal)
@@ -106,12 +103,12 @@ def handle_findall(
             and substituted_query.arity == 2
         ):
             flattened_goals = flatten_comma_structure(substituted_query)
-            success, new_unifs, final_seq = solve_with_unification(
-                program, flattened_goals, {}, seq, debug_state
+            success, new_unifs = solve_with_unification(
+                program, flattened_goals, {}, debug_state
             )
         else:
-            success, new_unifs, final_seq = solve_with_unification(
-                program, [substituted_query], unif, seq, debug_state
+            success, new_unifs = solve_with_unification(
+                program, [substituted_query], {}, debug_state
             )
 
         solutions = []
@@ -136,26 +133,25 @@ def handle_arrow(
     unif: Dict[str, Term],
     program: List[List[Term]],
     debug_state: DebugState,
-    seq: int,
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) not in [2, 3]:
         raise ErrUnknownPredicate("->", len(goal.params))
 
     try:
-        success, new_unifs, new_seq = solve_with_unification(
-            program, [goal.params[0]], unif, seq, debug_state
+        success, new_unifs = solve_with_unification(
+            program, [goal.params[0]], unif, debug_state
         )
 
         if success:
             condition_unif = new_unifs[0] if new_unifs else unif
-            then_success, then_unifs, then_seq = solve_with_unification(
-                program, [goal.params[1]], condition_unif, new_seq, debug_state
+            then_success, then_unifs = solve_with_unification(
+                program, [goal.params[1]], condition_unif, debug_state
             )
             return then_success, rest_goals, then_unifs
         else:
             if len(goal.params) == 3:
-                else_success, else_unifs, else_seq = solve_with_unification(
-                    program, [goal.params[2]], unif, seq, debug_state
+                else_success, else_unifs = solve_with_unification(
+                    program, [goal.params[2]], unif, debug_state
                 )
                 return else_success, rest_goals, else_unifs
             else:
@@ -170,11 +166,10 @@ def solve_with_unification(
     program: List[List[Term]],
     goals: List[Term],
     old_unif: Dict[str, Term],
-    seq: int,
     debug_state: DebugState,
-) -> Tuple[bool, List[Dict[str, Term]], int]:
+) -> Tuple[bool, List[Dict[str, Term]]]:
     if not goals:
-        return True, [old_unif], seq
+        return True, [old_unif]
     x, *rest = goals
 
     if debug_state.trace_mode:
@@ -187,7 +182,7 @@ def solve_with_unification(
         if isinstance(x, Struct) and x.name == "," and x.arity == 2:
             flattened_goals = flatten_comma_structure(x)
             return solve_with_unification(
-                program, flattened_goals + rest, old_unif, seq, debug_state
+                program, flattened_goals + rest, old_unif, debug_state
             )
         if (
             isinstance(x, Struct)
@@ -197,14 +192,13 @@ def solve_with_unification(
             if debug_state.trace_mode:
                 show_call_trace(x, debug_state.call_depth - 1)
                 handle_trace_input(debug_state)
-            return False, [], seq
+            return False, []
 
         if isinstance(x, Struct) and x.name == "!" and x.arity == 0:
-            success, solutions, final_seq = solve_with_unification(
+            success, solutions = solve_with_unification(
                 program,
                 rest,
                 old_unif,
-                seq,
                 debug_state,
             )
             if success:
@@ -213,11 +207,11 @@ def solve_with_unification(
                     marked_solution = solution.copy()
                     marked_solution["__CUT_ENCOUNTERED__"] = True
                     marked_solutions.append(marked_solution)
-                return True, marked_solutions, final_seq
+                return True, marked_solutions
             else:
                 cut_marker = old_unif.copy()
                 cut_marker["__CUT_ENCOUNTERED__"] = True
-                return False, [cut_marker], final_seq
+                return False, [cut_marker]
 
         if isinstance(x, Struct) and (
             (x.name == "not") or (x.name == "논리부정")
@@ -226,22 +220,21 @@ def solve_with_unification(
                 raise ErrInvalidCommand(f"{x.__repr__()}")
 
             inner_goal = substitute_term(old_unif, x.params[0])
-            success, solutions, final_seq = solve_with_unification(
+            success, solutions = solve_with_unification(
                 program,
                 [inner_goal],
                 old_unif,
-                seq,
                 debug_state,
             )
             if success:
-                return False, [], final_seq
+                return False, []
             else:
                 if debug_state.trace_mode:
                     show_exit_trace(x, debug_state.call_depth - 1)
                     handle_trace_input(debug_state)
 
                 return solve_with_unification(
-                    program, rest, old_unif, final_seq, debug_state
+                    program, rest, old_unif, debug_state
                 )
 
         if isinstance(x, Struct) and (
@@ -250,11 +243,11 @@ def solve_with_unification(
         ):
             if x.name == "findall":
                 success, new_goals, new_unifications = handle_findall(
-                    x, rest, old_unif, program, debug_state, seq
+                    x, rest, old_unif, program, debug_state
                 )
             elif x.name == "->":
                 success, new_goals, new_unifications = handle_arrow(
-                    x, rest, old_unif, program, debug_state, seq
+                    x, rest, old_unif, program, debug_state
                 )
             else:
                 success, new_goals, new_unifications = handle_builtins(
@@ -262,21 +255,16 @@ def solve_with_unification(
                 )
             if success:
                 all_solutions = []
-                # print(f"Processing {len(new_unifications)} unifications")
                 i = 0
                 for unif in new_unifications:
-                    # print(f"Processing unification {i}: {unif}")
                     i += 1
-                    success, solutions, final_seq = solve_with_unification(
+                    success, solutions = solve_with_unification(
                         program,
                         new_goals,
                         unif,
-                        seq,
                         debug_state,
                     )
-                    # print(
-                    #     f"Recursive call returned: success={success}, solutions={solutions}"
-                    # )
+
                     if success:
                         all_solutions.extend(solutions)
                         if any(
@@ -291,36 +279,33 @@ def solve_with_unification(
                                 }
                                 for sol in all_solutions
                             ]
-                            return True, clean_solutions, final_seq
+                            return True, clean_solutions
 
                 if debug_state.trace_mode and all_solutions:
                     show_exit_trace(x, debug_state.call_depth - 1)
                     handle_trace_input(debug_state)
 
-                return bool(all_solutions), all_solutions, seq
+                return bool(all_solutions), all_solutions
 
         clauses = [c for c in program if is_relevant(x, c)]
-        # print(f"clauses is {clauses}")
         all_solutions = []
 
         for clause in clauses:
             debug_state.seq += 1000
-            renamed_clause, new_seq = init_rules(clause, debug_state)
-            seq = new_seq
+            renamed_clause = init_rules(clause, debug_state)
+            # seq = new_seq
             is_match, new_goals, unif = match_predicate(
                 x, rest, old_unif, renamed_clause
             )
 
             if is_match:
-                success, solutions, final_seq = solve_with_unification(
+                success, solutions = solve_with_unification(
                     program,
                     new_goals,
                     unif,
-                    seq,
                     debug_state,
                 )
-                # print(f"solutions is {solutions}, success is {success}")
-                seq = final_seq
+                # seq = final_seq
 
                 if any(
                     "__CUT_ENCOUNTERED__" in solution for solution in solutions
@@ -328,16 +313,15 @@ def solve_with_unification(
                     if success:
                         all_solutions.extend(solutions)
 
-                    return success, solutions, final_seq
+                    return success, solutions
                 if success:
-                    # print("success")
                     all_solutions.extend(solutions)
 
         if debug_state.trace_mode and all_solutions:
             show_exit_trace(x, debug_state.call_depth - 1)
             handle_trace_input(debug_state)
 
-        return bool(all_solutions), all_solutions, seq
+        return bool(all_solutions), all_solutions
 
     finally:
         debug_state.call_depth -= 1
@@ -346,9 +330,7 @@ def solve_with_unification(
 def solve(
     program: List[List[Term]], goals: List[Term], debug_state: DebugState
 ) -> Tuple[bool, List[Dict[str, Term]]]:
-    result, unifs, _ = solve_with_unification(
-        program, goals, {}, 0, debug_state
-    )
+    result, unifs = solve_with_unification(program, goals, {}, debug_state)
     clean_unifs = [
         {k: v for k, v in unif.items() if k != "__CUT_ENCOUNTERED__"}
         for unif in unifs
