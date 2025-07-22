@@ -1,4 +1,1 @@
-parent(john, alice).
-parent(john, bob).
-
-human(alice).
+positive(X) :- X > 0.

@@ -2,14 +2,17 @@ from typing import Dict, List, Tuple
 
 from err import (
     ErrInvalidCommand,
+    ErrList,
     ErrProlog,
-    ErrSyntax,
     ErrUnknownPredicate,
     handle_error,
 )
 from PARSER.ast import Struct, Term, Variable
-from PARSER.Data.list import PrologList, extract_list
-from PARSER.parser import parse_line
+from PARSER.Data.list import (
+    PrologList,
+    extract_list,
+    is_empty_list,
+)
 from UTIL.debug import (
     DebugState,
     handle_trace_input,
@@ -28,11 +31,17 @@ from .unification import (
 
 def get_variables(terms: List[Term]) -> List[str]:
     result = []
+
     for t in terms:
         if isinstance(t, Variable):
             result.append(t.name)
+
         elif isinstance(t, Struct):
             result.extend(get_variables(t.params))
+
+        elif isinstance(t, list):
+            result.extend(get_variables(t))
+
     return result
 
 
@@ -152,7 +161,6 @@ def handle_setof(goal, rest_goals, unif, program, debug_state):
 
 
 def handle_forall(goal, rest_goals, unif, program, debug_state):
-    print("reached here")
     if len(goal.params) != 2:
         raise ErrUnknownPredicate("forall", len(goal.params))
 
@@ -169,7 +177,6 @@ def handle_forall(goal, rest_goals, unif, program, debug_state):
         # generator failed or had no solutions means vacuously true
         return True, rest_goals, [unif]
 
-    print(f"findall unifs is {findall_unifs}")
     result_struct = findall_unifs[0][result_var.name]
     generator_results = extract_list(result_struct)
 
@@ -187,6 +194,51 @@ def handle_forall(goal, rest_goals, unif, program, debug_state):
             return False, [], []
 
     return True, rest_goals, [unif]
+
+
+def handle_maplist(goal, rest_goals, unif, program, debug_state):
+    if len(goal.params) < 2:
+        raise ErrUnknownPredicate("maplist", len(goal.params))
+    pred = goal.params[0]
+    lists = goal.params[1:]
+    if isinstance(lists[0], list):
+        lists = lists[0]
+
+    if all(is_empty_list(lst) for lst in lists):
+        return True, rest_goals, [unif]
+
+    if any(is_empty_list(lst) for lst in lists) and not all(
+        is_empty_list(lst) for lst in lists
+    ):
+        return False, [], []
+
+    try:
+        heads = []
+        tails = []
+        for lst in lists:
+            heads.append(lst.params[0])
+            tails.append(lst.params[1])
+    except ErrList as e:
+        print(e)
+        return False, [], []
+
+    if isinstance(pred, Struct):
+        pred_call = Struct(pred.name, len(heads), heads)
+    else:
+        pred_call = Struct(str(pred), len(heads), heads)
+
+    success, new_unifs = solve_with_unification(
+        program, [pred_call], unif, debug_state
+    )
+    if not success or not new_unifs:
+        return False, [], []
+
+    new_unif = new_unifs[0]
+
+    recursive_goal = Struct("maplist", len(lists) + 1, [pred] + tails)
+    return handle_maplist(
+        recursive_goal, rest_goals, new_unif, program, debug_state
+    )
 
 
 def handle_arrow(
@@ -300,13 +352,14 @@ def solve_with_unification(
                 )
 
         if isinstance(x, Struct) and (
-            x.name in {"findall", "setof", "forall", "->"}
+            x.name in {"findall", "setof", "forall", "maplist", "->"}
             or has_builtin(x.name)
         ):
             internal_handlers = {
                 "findall": handle_findall,
                 "setof": handle_setof,
                 "forall": handle_forall,
+                "maplist": handle_maplist,
                 "->": handle_arrow,
             }
             if x.name in internal_handlers:
@@ -319,9 +372,7 @@ def solve_with_unification(
                 )
             if success:
                 all_solutions = []
-                i = 0
                 for unif in new_unifications:
-                    i += 1
                     success, solutions = solve_with_unification(
                         program,
                         new_goals,

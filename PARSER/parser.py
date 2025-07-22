@@ -49,6 +49,39 @@ def has_top_level_comma(s: str) -> bool:
     return False
 
 
+def has_top_level_operator(s: str, operator: str) -> bool:
+    depth = 0
+    bracket_depth = 0
+    inside_if_then_else = False
+    op_len = len(operator)
+    i = 0
+
+    while i < len(s):
+        ch = s[i]
+
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        elif ch == "[":
+            bracket_depth += 1
+        elif ch == "]":
+            bracket_depth -= 1
+        elif s[i : i + 2] == "->":
+            if depth == 0 and bracket_depth == 0:
+                inside_if_then_else = True
+            i += 1
+        elif (
+            s[i : i + op_len] == operator
+            and depth == 0
+            and bracket_depth == 0
+            and not inside_if_then_else
+        ):
+            return True
+        i += 1
+    return False
+
+
 def split_args(s: str) -> List[str]:
     parts, buf, depth, bracket_depth = [], "", 0, 0
     for ch in s:
@@ -243,7 +276,7 @@ def parse_struct(s: str) -> Term:
     s = s.strip()
     if s.startswith("(") and s.endswith(")"):
         inner_content = s[1:-1].strip()
-        if "," in inner_content and has_top_level_comma(inner_content):
+        if "," in inner_content and has_top_level_operator(inner_content, ","):
             parts = split_args(inner_content)
             goals = [parse_struct(part.strip()) for part in parts]
 
@@ -314,22 +347,19 @@ def parse_struct(s: str) -> Term:
         and "=<" not in s
         and ">=" not in s
         and ":=" not in s
-    ):
+    ) and has_top_level_operator(s, "="):
         equals_pos = s.find("=")
 
-        if (
-            equals_pos > 0
-            and equals_pos < len(s) - 1
-            and s[equals_pos - 1 : equals_pos + 2] not in ["=:=", "=\="]
-            and s[equals_pos : equals_pos + 2] not in ["=<"]
-        ):
+        if (equals_pos > 0 and equals_pos < len(s) - 1):
             left_part = s[:equals_pos].strip()
-            right_part = s[equals_pos + 1 :].strip()
+            right_part = s[equals_pos + 1:].strip()
 
             left_term = parse_term(left_part)
             right_term = parse_term(right_part)
 
             return Struct("=", 2, [left_term, right_term])
+        if (len(s) == 1 and equals_pos == 0):
+            return Struct("=", 0, [])
     elif s.startswith("[") and s.endswith("]"):
         return parse_list(s)
     elif m:
@@ -363,9 +393,18 @@ def parse_struct(s: str) -> Term:
 
             generator = parse_struct(parts[0].strip())
             test = parse_struct(parts[1].strip())
-            print(f"generator is {generator}, test is {test}")
 
             return Struct("forall", 2, [generator, test])
+        elif name == "maplist":
+            parts = split_args(args_str)
+            if len(parts) not in {2, 3, 4, 5}:
+                raise ErrUnknownPredicate(name, len(parts))
+
+            predicate = parse_struct(parts[0].strip())
+            lists = [parse_struct(p.strip()) for p in parts[1:]]
+
+            return Struct("maplist", len(parts), [predicate, lists])
+
         elif (
             name == "writeln"
             or name == "write"
