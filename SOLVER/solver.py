@@ -77,7 +77,9 @@ def match_predicate(
 def init_rules(clause: List[Term], debug_state: DebugState) -> List[Term]:
     counter = debug_state.seq
     debug_state.seq += 100
+
     vars_in_clause = get_variables(clause)
+
     var_map = {}
     current_counter = counter
 
@@ -201,6 +203,8 @@ def handle_maplist(goal, rest_goals, unif, program, debug_state):
         raise ErrUnknownPredicate("maplist", len(goal.params))
     pred = goal.params[0]
     lists = goal.params[1:]
+    lists = [substitute_term(unif, lst) for lst in lists]
+
     if isinstance(lists[0], list):
         lists = lists[0]
 
@@ -216,6 +220,8 @@ def handle_maplist(goal, rest_goals, unif, program, debug_state):
         heads = []
         tails = []
         for lst in lists:
+            if not isinstance(lst, Struct) or lst.name != ".":
+                return False, rest_goals, []
             heads.append(lst.params[0])
             tails.append(lst.params[1])
     except ErrList as e:
@@ -285,7 +291,6 @@ def solve_with_unification(
     if not goals:
         return True, [old_unif]
     x, *rest = goals
-
     if debug_state.trace_mode:
         show_call_trace(x, debug_state.call_depth)
         handle_trace_input(debug_state)

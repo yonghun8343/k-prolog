@@ -25,13 +25,13 @@ grandParent(X, Z) :-
 
 main :-
     read(Name),
-    findall(C, child(C, Name), Children),
-    ( Children = [] ->
-        writeln(none)
+    ( forall(child(C, Name), writeln(C)) ->
+        true
     ;
-        print_list(Children)
+        writeln(none)
     ),
     halt.
+
 
 :- initialization(main).
 

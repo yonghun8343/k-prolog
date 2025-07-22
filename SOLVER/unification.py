@@ -9,14 +9,14 @@ def extract_variable(vars: List[str], unif: Dict[str, Term]) -> Dict[str, Term]:
 
 def substitute_term(unification: Dict[str, Term], term: Term) -> Term:
     if isinstance(term, Variable):
-        return unification.get(term.name, term)
+        result = unification.get(term.name, term)
+        return result
     elif isinstance(term, Struct):
-        return Struct(
-            term.name,
-            term.arity,
-            [substitute_term(unification, p) for p in term.params],
-        )
-    return term
+        new_params = [substitute_term(unification, p) for p in term.params]
+        result = Struct(term.name, term.arity, new_params)
+        return result
+    else:
+        return term
 
 
 def substitute(unification: Dict[str, Term], terms: List[Term]) -> List[Term]:

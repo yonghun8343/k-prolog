@@ -310,6 +310,10 @@ BUILTINS = {
     "줄바꿈": handle_nl,
     "number": handle_number,
     "수": handle_number,
+    "true": None,
+    "참": None,
+    "false": None,
+    "거짓": None,
 }
 
 
@@ -327,6 +331,11 @@ def handle_builtins(
             sys.exit(0)
         else:
             raise ErrUnknownPredicate("종료", goal.arity)
+    if goal.name in ["true", "참"]:
+        return True, rest_goals, [old_unif]
+    elif goal.name in ["false", "거짓"]:
+        return False, rest_goals, []
+
     if goal.name not in BUILTINS:
         return False, [], []
     return BUILTINS[goal.name](goal, rest_goals, old_unif)

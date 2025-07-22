@@ -350,15 +350,15 @@ def parse_struct(s: str) -> Term:
     ) and has_top_level_operator(s, "="):
         equals_pos = s.find("=")
 
-        if (equals_pos > 0 and equals_pos < len(s) - 1):
+        if equals_pos > 0 and equals_pos < len(s) - 1:
             left_part = s[:equals_pos].strip()
-            right_part = s[equals_pos + 1:].strip()
+            right_part = s[equals_pos + 1 :].strip()
 
             left_term = parse_term(left_part)
             right_term = parse_term(right_part)
 
             return Struct("=", 2, [left_term, right_term])
-        if (len(s) == 1 and equals_pos == 0):
+        if len(s) == 1 and equals_pos == 0:
             return Struct("=", 0, [])
     elif s.startswith("[") and s.endswith("]"):
         return parse_list(s)
@@ -403,7 +403,7 @@ def parse_struct(s: str) -> Term:
             predicate = parse_struct(parts[0].strip())
             lists = [parse_struct(p.strip()) for p in parts[1:]]
 
-            return Struct("maplist", len(parts), [predicate, lists])
+            return Struct("maplist", len(parts), [predicate] + lists)
 
         elif (
             name == "writeln"
