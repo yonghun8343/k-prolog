@@ -548,6 +548,35 @@ class TestKProlog(unittest.TestCase):
 
         self.assertIn("참", stdout)
 
+    def test_maplist_binding(self):
+        commands = [
+            "maplist(=, [1, 2], [1, 2]).",
+            "maplist(=, [1, 2, 3], [A, B, C]).",
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("참", stdout)
+        self.assertIn("A = 1", stdout)
+        self.assertIn("B = 2", stdout)
+        self.assertIn("C = 3", stdout)
+
+    def test_maplist_add_one(self):
+        content = """
+            add_one(X, Y) :- Y is X + 1.
+        """
+
+        self.create_test_file("maplist_add_one.pl", content)
+
+        commands = [
+            "[maplist_add_one].",
+            "maplist(add_one, [1, 2, 3], [2, 3, 4]).",
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("참", stdout)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
