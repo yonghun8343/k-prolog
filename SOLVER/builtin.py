@@ -7,7 +7,6 @@ from err import (
     ErrNotNumber,
     ErrParsing,
     ErrProlog,
-    ErrSyntax,
     ErrUninstantiated,
     ErrUnknownOperator,
     ErrUnknownPredicate,
@@ -18,6 +17,9 @@ from PARSER.Data.list import (
     handle_list_append,
     handle_list_length,
     handle_list_permutation,
+    handle_is_list,
+    handle_reverse,
+    handle_subtract,
 )
 from PARSER.parser import parse_struct
 from UTIL.str_util import struct_to_infix
@@ -78,7 +80,7 @@ def evaluate_arithmetic(expr: Term, unif: Dict[str, Term]) -> float:
                 if right_val == 0:
                     raise ErrDivisionByZero()
                 return float(int(left_val // right_val))
-            elif expr.name == "나머지":
+            elif expr.name == "나머지" or expr.name == "mod":
                 if right_val == 0:
                     raise ErrDivisionByZero()
                 return left_val % right_val
@@ -143,6 +145,22 @@ def handle_equals(
     return success, rest_goals, [new_unif] if success else []
 
 
+def handle_not_equals(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 2:
+        raise ErrUnknownPredicate("\\=", len(goal.params))
+
+    left, right = goal.params
+
+    success, new_unif = match_params([left], [right], unif)
+
+    if success:
+        return False, rest_goals, []
+    else:
+        return True, rest_goals, [unif]
+
+
 def handle_write(  # need to take care of string
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
@@ -171,6 +189,38 @@ def handle_write(  # need to take care of string
 
     struct_form = parse_struct(writeStr)
     print(struct_to_infix(struct_form))
+    return True, rest_goals, [unif]
+
+
+def handle_display(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 1:
+        raise ErrUnknownPredicate("display", len(goal.params))
+
+    writeStr = str(goal.params[0])
+    new_unif = extract_variable([writeStr], unif)
+    if new_unif:
+        value = new_unif.get(writeStr)
+        print(value, end="")
+        return True, rest_goals, [unif]
+
+    if writeStr.startswith('"') and writeStr.endswith('"'):
+        print(writeStr[1:-1], end="")
+        return True, rest_goals, [unif]
+
+    if writeStr.startswith('"') or writeStr.endswith('"'):
+        raise ErrParsing(f"{writeStr}")
+
+    if writeStr.startswith("'") and writeStr.endswith("'"):
+        print(writeStr[1:-1], end="")
+        return True, rest_goals, [unif]
+
+    if writeStr.startswith("'") or writeStr.endswith("'"):
+        raise ErrParsing({writeStr})
+
+    struct_form = parse_struct(writeStr)
+    print(struct_form, end="")
     return True, rest_goals, [unif]
 
 
@@ -235,7 +285,7 @@ def handle_atomic(
 def handle_integer(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
-    if len(goal.params) != 1 or goal.params[0].arity != 0:
+    if len(goal.params) != 1:
         raise ErrUnknownPredicate("정수", len(goal.params))
 
     try:
@@ -279,8 +329,25 @@ def handle_number(
     return False, rest_goals, [unif]
 
 
+def handle_true(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    return True, rest_goals, [unif]
+
+
+def handle_false(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    return False, [], []
+
+
 BUILTINS = {
     "halt": None,
+    "종료": None,
+    "true": handle_true,
+    "참": handle_true,
+    "false": handle_false,
+    "거짓": handle_false,
     "is": handle_is,
     ":=": handle_is,
     ">": handle_comparison,
@@ -290,14 +357,19 @@ BUILTINS = {
     "=:=": handle_comparison,
     "=\=": handle_comparison,
     "=": handle_equals,
+    "\=": handle_not_equals,
     "append": handle_list_append,
     "접합": handle_list_append,
     "length": handle_list_length,
     "길이": handle_list_length,
     "permutation": handle_list_permutation,
     "순열": handle_list_permutation,
+    "is_list": handle_is_list,
+    "reverse": handle_reverse,
+    "subtract": handle_subtract,
     "write": handle_write,
     "쓰기": handle_write,
+    "display": handle_display,
     "writeln": handle_writeln,
     "쓰고줄바꿈": handle_writeln,
     "read": handle_read,
@@ -310,10 +382,6 @@ BUILTINS = {
     "줄바꿈": handle_nl,
     "number": handle_number,
     "수": handle_number,
-    "true": None,
-    "참": None,
-    "false": None,
-    "거짓": None,
 }
 
 
@@ -331,10 +399,6 @@ def handle_builtins(
             sys.exit(0)
         else:
             raise ErrUnknownPredicate("종료", goal.arity)
-    if goal.name in ["true", "참"]:
-        return True, rest_goals, [old_unif]
-    elif goal.name in ["false", "거짓"]:
-        return False, rest_goals, []
 
     if goal.name not in BUILTINS:
         return False, [], []

@@ -1,6 +1,7 @@
 from typing import Dict, List, Tuple
 
 from PARSER.ast import Struct, Term, Variable
+from err import ErrUnification
 
 
 def extract_variable(vars: List[str], unif: Dict[str, Term]) -> Dict[str, Term]:
@@ -32,9 +33,12 @@ def substitute_unification(
 def match_structs(
     a: Struct, b: Struct, old_unif: Dict[str, Term]
 ) -> Tuple[bool, Dict[str, Term]]:
-    if a.name == b.name and a.arity == b.arity:
-        success, result_unif = match_params(a.params, b.params, old_unif)
-        return success, result_unif
+    try:
+        if a.name == b.name and a.arity == b.arity:
+            success, result_unif = match_params(a.params, b.params, old_unif)
+            return success, result_unif
+    except Exception as e:
+        raise ErrUnification(a, b, "match_structs") from e
     return False, {}
 
 

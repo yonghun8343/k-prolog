@@ -201,6 +201,88 @@ def extract_list(term: Term) -> List:
             return None
 
 
+def handle_is_list(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 1 or goal.arity != 1:
+        return False, [], {}
+    list = goal.params[0]
+    return is_list_cons(list), rest_goals, [unif]
+
+
+def handle_reverse(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 2 or goal.arity != 2:
+        return False, [], {}
+
+    list1, list2 = goal.params
+
+    list1 = substitute_term(unif, list1)
+    list2 = substitute_term(unif, list2)
+
+    if is_empty_list(list1) and is_empty_list(list2):
+        return True, rest_goals, [unif]
+
+    if is_empty_list(list1) or is_empty_list(list2):
+        return False, [], []
+
+    if (not isinstance(list1, Variable)) and (not isinstance(list2, Variable)):
+        list1_extr = extract_list(list1)
+        list2_extr = extract_list(list2)
+
+        if list1_extr is not None and list2_extr is not None:
+            list1_extr.reverse()
+            return list1_extr == list2_extr, rest_goals, [unif]
+        return False, [], []
+
+    return False, [], []
+
+
+def handle_subtract(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 3 or goal.arity != 3:
+        return False, [], []
+
+    set_list, delete_list, result = goal.params
+
+    set_list = substitute_term(unif, set_list)
+    delete_list = substitute_term(unif, delete_list)
+    result = substitute_term(unif, result)
+
+    if isinstance(set_list, Variable) or isinstance(delete_list, Variable):
+        return False, [], []
+
+    set_elements = extract_list(set_list)
+    delete_elements = extract_list(delete_list)
+
+    if set_elements is None or delete_elements is None:
+        return False, [], []
+
+    result_elements = []
+
+    for set_elem in set_elements:
+        should_keep = True
+
+        for delete_elem in delete_elements:
+            success, temp_unif = match_params([set_elem], [delete_elem], {})
+            if success:
+                should_keep = False
+                break
+
+        if should_keep:
+            result_elements.append(set_elem)
+
+    result_prolog_list = PrologList(result_elements).to_struct()
+    success, new_unif = match_params([result], [result_prolog_list], unif)
+
+    if success:
+        return True, rest_goals, [new_unif]
+    else:
+        return False, [], []
+
+
 def generate_list(n: int) -> Term:
     if n == 0:
         return Struct("[]", 0, [])

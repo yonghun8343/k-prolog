@@ -7,14 +7,12 @@ from err import (
     ErrInvalidTerm,
     ErrParenthesis,
     ErrProlog,
-    ErrSyntax,
     ErrUnexpected,
     ErrUnknownPredicate,
     handle_error,
 )
 from PARSER.ast import Struct, Term, Variable
 from PARSER.Data.list import PrologList
-# from SOLVER.builtin import handle_builtins
 
 
 def has_top_level_comma(s: str) -> bool:
@@ -171,7 +169,7 @@ def parse_primary(tokens: List[str], pos: int, operators) -> Tuple[Term, int]:
         operand, pos = parse_primary(tokens, pos + 1, operators)
         return Struct(token, 1, [operand]), pos
 
-    if re.match(r"^\d+\.?\d*$", token):  # TODO find out if need to convert
+    if re.match(r"^\d+\.?\d*$", token):
         return Struct(token, 0, []), pos + 1
 
     if token[0].isupper() or token[0] == "_":
@@ -215,6 +213,7 @@ def parse_arithmetic_expression(expr: str) -> Term:
         "/": (400, True),
         "//": (400, True),
         "나머지": (400, True),
+        "mod": (400, True),
         "+": (500, True),
         "-": (500, True),
         "=:=": (700, False),
@@ -224,6 +223,7 @@ def parse_arithmetic_expression(expr: str) -> Term:
         ">=": (700, False),
         "=<": (700, False),
         "=": (700, False),
+        "\=": (700, False),
         "is": (700, False),
         ":=": (700, False),
     }
@@ -232,7 +232,7 @@ def parse_arithmetic_expression(expr: str) -> Term:
 
     expr = expr.replace("=\=", "=\\=")
 
-    pattern = r"(=\\=|=:=|>=|=<|//|나머지|is|:=|\d+\.?\d*|[A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ_][A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ0-9_]*|[+\-*/=<>(),])"
+    pattern = r"(=\\=|=:=|>=|=<|//|나머지|mod|is|:=|\d+\.?\d*|[A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ_][A-Za-z가-힣ㄱ-ㅎㅏ-ㅣ0-9_]*|[+\-*/=<>(),])"
 
     tokens = re.findall(pattern, expr)
     tokenized = [t for t in tokens if t.strip()]
@@ -255,21 +255,66 @@ def parse_list(s: str) -> Term:
     if not content:  # empty list
         return PrologList().to_struct()
 
-    if "|" in content:  # [H | T]
-        parts = content.split("|", 1)
-        head = parts[0].strip()
-        tail = parts[1].strip()
+    if "|" in content:  # [H | T] - but need to check if | is at top level
+        pipe_pos = find_top_level_pipe(content)
+        if pipe_pos != -1:
+            head = content[:pipe_pos].strip()
+            tail = content[pipe_pos + 1 :].strip()
 
-        if head:
-            elements = [parse_term(e.strip()) for e in split_args(head)]
+            if head:
+                elements = [
+                    parse_term(e.strip()) for e in split_args_smart(head)
+                ]
+            else:
+                elements = []
+
+            tail = parse_term(tail)
+            return PrologList(elements, tail).to_struct()
+
+    elements = [parse_term(e.strip()) for e in split_args_smart(content)]
+    return PrologList(elements).to_struct()
+
+
+def find_top_level_pipe(content: str) -> int:
+    bracket_depth = 0
+    for i, char in enumerate(content):
+        if char == "[":
+            bracket_depth += 1
+        elif char == "]":
+            bracket_depth -= 1
+        elif char == "|" and bracket_depth == 0:
+            return i
+    return -1
+
+
+def split_args_smart(args_str: str) -> List[str]:
+    if not args_str.strip():
+        return []
+
+    args = []
+    current_arg = ""
+    bracket_depth = 0
+    paren_depth = 0
+
+    for char in args_str:
+        if char == "," and bracket_depth == 0 and paren_depth == 0:
+            args.append(current_arg.strip())
+            current_arg = ""
         else:
-            elements = []
+            if char == "[":
+                bracket_depth += 1
+            elif char == "]":
+                bracket_depth -= 1
+            elif char == "(":
+                paren_depth += 1
+            elif char == ")":
+                paren_depth -= 1
+            current_arg += char
 
-        tail = parse_term(tail)
-        return PrologList(elements, tail).to_struct()
-    else:
-        elements = [parse_term(e.strip()) for e in split_args(content)]
-        return PrologList(elements).to_struct()
+    if current_arg.strip():
+        args.append(current_arg.strip())
+
+    return args
 
 
 def parse_struct(s: str) -> Term:
@@ -321,6 +366,7 @@ def parse_struct(s: str) -> Term:
         "/",
         "//",
         "나머지",
+        "mod",
         "=:=",
         "=\=",
         ">=",
@@ -340,7 +386,17 @@ def parse_struct(s: str) -> Term:
                 break
     # m = re.match(r"^([a-z0-9][a-zA-Z0-9_]*)\s*\((.*)\)$", s)
     m = re.match(r"^([a-z0-9가-힣][a-zA-Z0-9가-힣_]*)\s*\((.*)\)$", s)
-    if (
+    if s.startswith("\\=") or "\\=" in s and has_top_level_operator(s, "\\="):
+        equals_pos = s.find("\\=")
+        if equals_pos > 0 and equals_pos < len(s) - 2:
+            left_part = s[:equals_pos].strip()
+            right_part = s[equals_pos + 2 :].strip()
+
+            left_term = parse_term(left_part)
+            right_term = parse_term(right_part)
+
+            return Struct("\\=", 2, [left_term, right_term])
+    elif (
         "=" in s
         and "=:=" not in s
         and "=\=" not in s
@@ -429,7 +485,7 @@ def parse_struct(s: str) -> Term:
                 result = parse_arithmetic_expression(s)
                 return result
             except ErrProlog as e:
-                handle_error(e, "산술 표현식 구문 분석")
+                pass
 
         elif s[0].isupper() or s[0] == "_":
             return Variable(s)  # TODO need variable checking
@@ -452,6 +508,7 @@ def parse_term(s: str) -> Term:
             "/",
             "//",
             "나머지",
+            "mod",
             ">",
             "<",
             ">=",

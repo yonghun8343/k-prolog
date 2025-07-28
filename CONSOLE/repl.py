@@ -5,7 +5,6 @@ from err import (
     ErrFileNotFound,
     ErrInvalidCommand,
     ErrOperator,
-    ErrParsing,
     ErrPeriod,
     ErrProlog,
     ErrSyntax,
@@ -16,7 +15,7 @@ from PARSER.ast import Struct, Term
 from PARSER.parser import parse_string
 from SOLVER.solver import solve
 from UTIL.debug import DebugState
-from UTIL.str_util import format_term, term_to_string, flatten_comma_structure
+from UTIL.str_util import flatten_comma_structure, format_term
 
 
 class Command:
@@ -87,11 +86,11 @@ def parse_command(command: str) -> Command:
         return Load(command[8:-2])
     elif command == "make." or command == "재적재.":
         return Make()
-    elif command == "halt." or command == "종료":
+    elif command == "halt." or command == "종료.":
         return Halt()
-    elif command == "trace." or command == "추적":
+    elif command == "trace." or command == "추적.":
         return Trace()
-    elif command == "notrace." or command == "추적중단":
+    elif command == "notrace." or command == "추적중단.":
         return NoTrace()
     elif command.startswith("listing") or command.startswith("목록"):
         if command == "listing." or command == "목록":

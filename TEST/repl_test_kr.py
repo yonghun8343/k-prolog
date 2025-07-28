@@ -386,7 +386,7 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("참", stdout)
 
     def test_initialization_compound_goal(self):
-        content = """:- 초기화((쓰기('시작'), nl, 쓰기('끝'), nl))."""  # TODO wont work when wrapped with parens
+        content = """:- 초기화((쓰기('시작'), nl, 쓰기('끝'), nl))."""
         self.create_test_file("초기화.pl", content)
 
         commands = [

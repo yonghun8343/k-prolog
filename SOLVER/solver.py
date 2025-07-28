@@ -130,7 +130,6 @@ def handle_findall(
 
         result_list = PrologList(solutions).to_struct()
         success, final_unif = match_params([result_bag], [result_list], unif)
-
         return success, rest_goals, [final_unif]
 
     except ErrProlog as e:
@@ -139,25 +138,21 @@ def handle_findall(
 
 
 def handle_setof(goal, rest_goals, unif, program, debug_state):
-    # Use your existing findall logic
     success, findall_goals, findall_unifs = handle_findall(
         goal, rest_goals, unif, program, debug_state
     )
 
     if success and findall_unifs:
-        # Extract the list from findall result
         result_list = findall_unifs[0][goal.params[2].name]  # The bag
         python_list = extract_list(result_list)
         unique_sorted = sorted(set(python_list))  # Remove dups + sort
 
-        # Convert back to Prolog list
         setof_result = PrologList(unique_sorted).to_struct()
 
-        # Update unification
         final_unif = findall_unifs[0].copy()
         final_unif[goal.params[2].name] = setof_result
 
-        return len(unique_sorted) > 0, rest_goals, [final_unif]  # Fail if empty
+        return len(unique_sorted) > 0, rest_goals, [final_unif]
 
     return False, rest_goals, []
 
@@ -224,8 +219,7 @@ def handle_maplist(goal, rest_goals, unif, program, debug_state):
                 return False, rest_goals, []
             heads.append(lst.params[0])
             tails.append(lst.params[1])
-    except ErrList as e:
-        print(e)
+    except ErrList:
         return False, [], []
 
     if isinstance(pred, Struct):

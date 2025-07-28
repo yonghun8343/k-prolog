@@ -1,1 +1,1 @@
-positive(X) :- X > 0.
+test_nested([[X|Xs]]) :- write(X), write(" "), write(Xs).

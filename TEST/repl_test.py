@@ -369,7 +369,9 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("True", stdout)
 
     def test_initialization_compound_goal(self):
-        content = """:- initialization((write('Start'), nl, write('End'), nl))."""  # TODO wont work when wrapped with parens
+        content = (
+            """:- initialization((write('Start'), nl, write('End'), nl))."""
+        )
         self.create_test_file("init.pl", content)
 
         commands = [
