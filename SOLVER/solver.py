@@ -419,7 +419,6 @@ def solve_with_unification(
                     unif,
                     debug_state,
                 )
-                # seq = final_seq
 
                 if any(
                     "__CUT_ENCOUNTERED__" in solution for solution in solutions

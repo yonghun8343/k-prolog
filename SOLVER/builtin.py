@@ -329,6 +329,18 @@ def handle_number(
     return False, rest_goals, [unif]
 
 
+def handle_nonvar(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 1:
+        raise ErrUnknownPredicate("변수아닌가", len(goal.params))
+
+    if isinstance(goal.params[0], Variable):
+        return False, rest_goals, [unif]
+
+    return True, rest_goals, [unif]
+
+
 def handle_true(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
@@ -365,23 +377,29 @@ BUILTINS = {
     "permutation": handle_list_permutation,
     "순열": handle_list_permutation,
     "is_list": handle_is_list,
+    "리스트인가": handle_is_list,
     "reverse": handle_reverse,
+    "거꾸로": handle_reverse,
     "subtract": handle_subtract,
+    "원소제거": handle_subtract,
     "write": handle_write,
     "쓰기": handle_write,
     "display": handle_display,
+    "출력에쓰기": handle_display,
     "writeln": handle_writeln,
     "쓰고줄바꿈": handle_writeln,
     "read": handle_read,
     "읽기": handle_read,
     "atomic": handle_atomic,
-    "단순": handle_atomic,
+    "상수인가": handle_atomic,
     "integer": handle_integer,
-    "정수": handle_integer,
+    "정수인가": handle_integer,
     "nl": handle_nl,
     "줄바꿈": handle_nl,
     "number": handle_number,
     "수": handle_number,
+    "nonvar": handle_nonvar,
+    "변수아닌가": handle_nonvar,
 }
 
 

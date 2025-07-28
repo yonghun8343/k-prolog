@@ -442,7 +442,7 @@ def parse_struct(s: str) -> Term:
                 return Struct("findall", 3, [template, query_str, result_bag])
             else:
                 return Struct("setof", 3, [template, query_str, result_bag])
-        elif name == "forall":
+        elif name == "forall" or name == "모두만족":
             parts = split_args(args_str)
             if len(parts) != 2:
                 raise ErrUnknownPredicate(name, len(parts))
@@ -451,7 +451,7 @@ def parse_struct(s: str) -> Term:
             test = parse_struct(parts[1].strip())
 
             return Struct("forall", 2, [generator, test])
-        elif name == "maplist":
+        elif name == "maplist" or name == "목록에적용":
             parts = split_args(args_str)
             if len(parts) not in {2, 3, 4, 5}:
                 raise ErrUnknownPredicate(name, len(parts))
