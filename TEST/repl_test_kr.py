@@ -249,10 +249,10 @@ class TestKProlog(unittest.TestCase):
 
     def test_atomic(self):
         commands = [
-            "단순(random).",
-            "단순(_X).",
-            "단순(3).",
-            "단순(흥미로운(prolog)).",
+            "상수인가(random).",
+            "상수인가(_X).",
+            "상수인가(3).",
+            "상수인가(흥미로운(prolog)).",
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
@@ -264,10 +264,10 @@ class TestKProlog(unittest.TestCase):
 
     def test_integer(self):
         commands = [
-            "정수(3).",
-            "정수(random).",
-            "정수(4.5).",
-            "정수(3.0).",
+            "정수인가(3).",
+            "정수인가(random).",
+            "정수인가(4.5).",
+            "정수인가(3.0).",
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)

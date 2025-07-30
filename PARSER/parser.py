@@ -386,8 +386,13 @@ def parse_struct(s: str) -> Term:
                 break
     # m = re.match(r"^([a-z0-9][a-zA-Z0-9_]*)\s*\((.*)\)$", s)
     m = re.match(r"^([a-z0-9가-힣][a-zA-Z0-9가-힣_]*)\s*\((.*)\)$", s)
-    if s.startswith("\\=") or "\\=" in s and has_top_level_operator(s, "\\="):
-        equals_pos = s.find("\\=")
+    if (
+        s.startswith("\=")
+        or "\=" in s
+        and "=\=" not in s
+        and has_top_level_operator(s, "\=")
+    ):
+        equals_pos = s.find("\=")
         if equals_pos > 0 and equals_pos < len(s) - 2:
             left_part = s[:equals_pos].strip()
             right_part = s[equals_pos + 2 :].strip()
