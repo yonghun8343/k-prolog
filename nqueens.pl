@@ -1,5 +1,4 @@
-queens(N,Qs) :- 
-    range(1,N,Ns), permutation(Ns,Qs), safe(Qs).
+queens(N,Qs) :- range(1,N,Ns), permutation(Ns,Qs), safe(Qs).
 
 safe([]).
 safe([Q|Qs]) :- safe(Qs), not(attack(Q,Qs)).

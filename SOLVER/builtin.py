@@ -113,7 +113,22 @@ def handle_comparison(
         right = evaluate_arithmetic(right, unif)
 
     except ErrProlog as e:
-        handle_error(e, "산술 계산")
+        if isinstance(e, ErrUninstantiated):
+            # check if this constraint has been delayed before
+            delay_count = getattr(goal, '_delay_count', 0)
+            
+
+            if delay_count >= 3 or len(rest_goals) == 0:
+                handle_error(e, "산술 계산")
+                return False, [], []
+            
+            # mark this goal as delayed and move to end
+            goal._delay_count = delay_count + 1
+            delayed_goals = rest_goals + [goal]
+            return True, delayed_goals, [unif]
+        else:
+            handle_error(e, "산술 계산")
+            return False, [], []
 
     if goal.name == ">":
         success = left > right

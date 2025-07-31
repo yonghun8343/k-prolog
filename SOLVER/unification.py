@@ -5,15 +5,45 @@ from err import ErrUnification
 
 
 def extract_variable(vars: List[str], unif: Dict[str, Term]) -> Dict[str, Term]:
-    return {v: unif[v] for v in vars if v in unif and not v.startswith("_G")}
+    result = {}
+    for v in vars:
+        if v in unif and not v.startswith("_G"):
+            # fully substitute the value to resolve any remaining temporary variables
+            result[v] = substitute_term(unif, unif[v])
+    return result
 
 
-def substitute_term(unification: Dict[str, Term], term: Term) -> Term:
+def substitute_term(
+    unification: Dict[str, Term],
+    term: Term,
+    visited: set = None,
+    depth: int = 0,
+) -> Term:
+    # prevent infinite recursion
+    if depth > 100:
+        return term
+
+    if visited is None:
+        visited = set()
+
     if isinstance(term, Variable):
-        result = unification.get(term.name, term)
-        return result
+        if term.name in visited:
+            return term  # return original variable to break cycle
+
+        if term.name in unification:
+            visited.add(term.name)
+            result = substitute_term(
+                unification, unification[term.name], visited, depth + 1
+            )
+            visited.remove(term.name)
+            return result
+        else:
+            return term
     elif isinstance(term, Struct):
-        new_params = [substitute_term(unification, p) for p in term.params]
+        new_params = [
+            substitute_term(unification, p, visited, depth + 1)
+            for p in term.params
+        ]
         result = Struct(term.name, term.arity, new_params)
         return result
     else:

@@ -1,42 +1,25 @@
+is_prime(2).
+is_prime(3).
+is_prime(P) :- integer(P), P > 3, R is P mod 2, R =\= 0, not(has_factor(P,3)).
 
-father(john, jim).
-father(jack, john).
-father(adam, jane).
-father(louis, alan).
-father(bob, chris).
-father(alan, mike).
-father(alan, joan).
+has_factor(N,L) :- R is N mod L, R =:= 0.
+has_factor(N,L) :- L * L < N, L2 is L + 2, has_factor(N,L2).
 
-mother(mary, john).
-mother(eve, jane).
-mother(violet, bob).
-mother(jane, jim).
+goldbach(4,[2,2]) :- !.
+goldbach(N,L) :- R is N mod 2, R =:= 0, N > 4, goldbach(N,L,3).
 
+goldbach(N,[P,Q],P) :- Q is N - P, is_prime(Q), !.
+goldbach(N,L,P) :- P < N, next_prime(P,P1), goldbach(N,L,P1).
 
-parent(X, Y) :- father(X, Y).
-parent(X, Y) :- mother(X, Y).
+next_prime(P,P1) :- P1 is P + 2, is_prime(P1), !.
+next_prime(P,P1) :- P2 is P + 2, next_prime(P2,P1).
 
-child(Y, X) :- parent(X, Y).
+prime_list(A,B,L) :- A =< 2, !, p_list(2,B,L).
+prime_list(A,B,L) :- A1 is (A // 2) * 2 + 1, p_list(A1,B,L).
 
-grandParent(X, Z) :-
-    parent(X, Y),
-    parent(Y, Z).
+p_list(A,B,[]) :- A > B, !.
+p_list(A,B,[A|L]) :- is_prime(A), !, next(A,A1), p_list(A1,B,L). 
+p_list(A,B,L) :- next(A,A1), p_list(A1,B,L).
 
-
-main :-
-    read(Name),
-    findall(C, child(C, Name), Children),
-    ( Children = [] ->
-        writeln(none)
-    ;
-        print_list(Children)
-    ),
-    halt.
-
-:- initialization(main).
-
-
-print_list([]).
-print_list([H|T]) :-
-    writeln(H),
-    print_list(T).
+next(2,3) :- !.
+next(A,A1) :- A1 is A + 2.
