@@ -3,6 +3,7 @@ import sys
 from typing import Optional
 
 IsVerbose = False
+called = 0
 
 
 def eprint(*args, **kwargs) -> None:
@@ -10,6 +11,10 @@ def eprint(*args, **kwargs) -> None:
 
 
 def handle_error(error: Exception, context: str = "") -> None:
+    global called
+    called += 1
+    if called > 1:
+        return
     if IsVerbose:
         eprint(f"문맥: {context}")
         eprint(f"오류 타입: {type(error).__name__}")
@@ -122,6 +127,15 @@ class ErrUninstantiated(ErrExecution):
             base += f" (변수: {self.variable})"
 
         return base
+
+
+class ErrType(ErrExecution):
+    def __init__(self, var: str, expected: str):
+        self.var = var
+        self.expected = expected
+
+    def __str__(self) -> str:
+        return f"타입입 오류: 예상: {self.expected}, 실제: {self.var}"
 
 
 class ErrArithmetic(ErrExecution):

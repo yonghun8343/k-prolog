@@ -3,6 +3,7 @@
   "editor.defaultFormatter": "charliermarsh.ruff",
   "editor.formatOnSave": true,
   "ruff.lint": true,
-  "ruff.organizeImports": true
+  "ruff.organizeImports": true,
+  "editor.inlineSuggest.enabled": false
 }
 

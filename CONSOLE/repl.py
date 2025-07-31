@@ -302,14 +302,28 @@ def print_result(result: bool, unifications: List[dict]) -> None:
         else:
             print("거짓")
     else:
-        for unification in unifications:
-            for key, value in unification.items():
+        # Print first solution
+        if unifications:
+            first_unification = unifications[0]
+            for key, value in first_unification.items():
                 formatted_value = format_term(value)
                 print(f"{key} = {formatted_value}", end="")
-                if len(unifications) > 1:
-                    if input() == ";":
-                        continue
-                    else:
+                if len(first_unification) > 1:
+                    print("")
+
+            # If there are more solutions, handle them interactively
+            for i in range(1, len(unifications)):
+                try:
+                    user_input = input()
+                    if user_input != ";":
                         return
-                else:
-                    print()
+                    # Print next solution
+                    unification = unifications[i]
+                    for key, value in unification.items():
+                        formatted_value = format_term(value)
+                        print(f"{key} = {formatted_value}", end="")
+                        if len(first_unification) > 1:
+                            print("")
+                except EOFError:
+                    return
+            print("")

@@ -10,6 +10,7 @@ from err import (
     ErrUninstantiated,
     ErrUnknownOperator,
     ErrUnknownPredicate,
+    ErrType,
     handle_error,
 )
 from PARSER.ast import Struct, Term, Variable
@@ -115,13 +116,12 @@ def handle_comparison(
     except ErrProlog as e:
         if isinstance(e, ErrUninstantiated):
             # check if this constraint has been delayed before
-            delay_count = getattr(goal, '_delay_count', 0)
-            
+            delay_count = getattr(goal, "_delay_count", 0)
 
             if delay_count >= 3 or len(rest_goals) == 0:
                 handle_error(e, "산술 계산")
                 return False, [], []
-            
+
             # mark this goal as delayed and move to end
             goal._delay_count = delay_count + 1
             delayed_goals = rest_goals + [goal]
@@ -368,6 +368,136 @@ def handle_false(
     return False, [], []
 
 
+def handle_atom_concat(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 3 or goal.arity != 3:
+        raise ErrUnknownPredicate(goal.name, len(goal.params))
+
+    l1, l2, l3 = goal.params
+    l1 = substitute_term(unif, l1)
+    l2 = substitute_term(unif, l2)
+    l3 = substitute_term(unif, l3)
+
+    def create_quoted_atom(value: str) -> Struct:
+        """Create a Struct representing an atom wrapped in single quotes for display"""
+        if value == "":
+            return Struct("''", 0, [])
+        else:
+            return Struct(f"'{value}'", 0, [])
+
+    if isinstance(l3, Variable):
+        if isinstance(l1, Variable) or isinstance(l2, Variable):
+            raise ErrUninstantiated(
+                "atom_concat", "적어도 2개의 인수가 인스턴스화되어야 합니다"
+            )
+        if not (isinstance(l1, Struct) and l1.arity == 0) or not (
+            isinstance(l2, Struct) and l2.arity == 0
+        ):
+            raise ErrType("atom_concat는 원자가 필요합니다")
+
+        # Extract the actual values (remove quotes if present)
+        l1_val = (
+            l1.name.strip("'")
+            if l1.name.startswith("'") and l1.name.endswith("'")
+            else l1.name
+        )
+        l2_val = (
+            l2.name.strip("'")
+            if l2.name.startswith("'") and l2.name.endswith("'")
+            else l2.name
+        )
+        concat_val = l1_val + l2_val
+
+        concat_struct = create_quoted_atom(concat_val)
+        success, new_unif = match_params([l3], [concat_struct], unif)
+        return success, rest_goals, [new_unif] if success else []
+    else:
+        if not (isinstance(l3, Struct) and l3.arity == 0):
+            raise ErrType("atom_concat는 원자가 필요합니다")
+
+        # Extract the actual value from l3 (remove quotes if present)
+        l3_val = (
+            l3.name.strip("'")
+            if l3.name.startswith("'") and l3.name.endswith("'")
+            else l3.name
+        )
+
+        if isinstance(l1, Variable) and isinstance(l2, Variable):
+            all_unifs = []
+            for i in range(len(l3_val) + 1):
+                l1_part = l3_val[:i]
+                l2_part = l3_val[i:]
+
+                l1_struct = create_quoted_atom(l1_part)
+                l2_struct = create_quoted_atom(l2_part)
+
+                success1, temp_unif = match_params([l1], [l1_struct], unif)
+                if success1:
+                    success2, final_unif = match_params(
+                        [l2], [l2_struct], temp_unif
+                    )
+                    if success2:
+                        all_unifs.append(final_unif)
+
+            return len(all_unifs) > 0, rest_goals, all_unifs
+        elif isinstance(l1, Variable):
+            if not (isinstance(l2, Struct) and l2.arity == 0):
+                raise ErrType("atom_concat는 원자가 필요합니다")
+
+            l2_val = (
+                l2.name.strip("'")
+                if l2.name.startswith("'") and l2.name.endswith("'")
+                else l2.name
+            )
+            if l3_val.endswith(l2_val):
+                l1_part = l3_val[: -len(l2_val)] if len(l2_val) > 0 else l3_val
+                l1_struct = create_quoted_atom(l1_part)
+                success, new_unif = match_params([l1], [l1_struct], unif)
+                return success, rest_goals, [new_unif] if success else []
+            else:
+                return False, rest_goals, []
+        elif isinstance(l2, Variable):
+            if not (isinstance(l1, Struct) and l1.arity == 0):
+                raise ErrType("atom_concat는 원자가 필요합니다")
+
+            l1_val = (
+                l1.name.strip("'")
+                if l1.name.startswith("'") and l1.name.endswith("'")
+                else l1.name
+            )
+            if l3_val.startswith(l1_val):
+                l2_part = l3_val[len(l1_val) :]
+                l2_struct = create_quoted_atom(l2_part)
+                success, new_unif = match_params([l2], [l2_struct], unif)
+                return success, rest_goals, [new_unif] if success else []
+            else:
+                return False, rest_goals, []
+        else:
+            # All three are atoms - check if l1 + l2 = l3
+            if not (isinstance(l1, Struct) and l1.arity == 0) or not (
+                isinstance(l2, Struct) and l2.arity == 0
+            ):
+                raise ErrType("atom_concat는 원자가 필요합니다")
+
+            l1_val = (
+                l1.name.strip("'")
+                if l1.name.startswith("'") and l1.name.endswith("'")
+                else l1.name
+            )
+            l2_val = (
+                l2.name.strip("'")
+                if l2.name.startswith("'") and l2.name.endswith("'")
+                else l2.name
+            )
+            concat_result = l1_val + l2_val
+
+            if concat_result == l3_val:
+                return True, rest_goals, [unif]
+            else:
+                return False, rest_goals, []
+
+
 BUILTINS = {
     "halt": None,
     "종료": None,
@@ -415,6 +545,8 @@ BUILTINS = {
     "수": handle_number,
     "nonvar": handle_nonvar,
     "변수아닌가": handle_nonvar,
+    "atom_concat": handle_atom_concat,
+    "산수연결": handle_atom_concat,
 }
 
 

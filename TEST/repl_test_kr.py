@@ -129,6 +129,51 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("_Y = 6", stdout)
         self.assertIn("_Z = 0", stdout)
 
+    def test_atom_concat_functionality(self):
+        commands = [
+            # Test 1: Generation mode - both variables unbound
+            "atom_concat(X, Y, hello).",
+            ";",
+            ";",
+            ";",
+            ";",
+            ";",  # Need 5 semicolons for 6 solutions of "hello"
+            # Test 2: First variable mode
+            "atom_concat(A, world, helloworld).",
+            # Test 3: Second variable mode
+            "atom_concat(hello, B, helloworld).",
+            # Test 4: Check mode - all bound, should succeed
+            "atom_concat(hel, lo, hello).",
+            # Test 5: Check mode - all bound, should fail
+            "atom_concat(hel, lo, world).",
+            # Test 6: Empty string handling
+            "atom_concat('', test, test).",
+            # Test 7: Numbers as atoms
+            "atom_concat(1, 23, 123).",
+            # Test 8: Single character split
+            "atom_concat(P, Q, a).",
+            ";",  # Need 1 semicolon for 2 solutions of "a"
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("X = ", stdout)
+        self.assertIn("Y = 'hello'", stdout)
+        self.assertIn("X = 'h'", stdout)
+        self.assertIn("Y = 'ello'", stdout)
+        self.assertIn("X = 'hello'", stdout)  # Last solution from generation mode
+        self.assertIn("Y = ''", stdout)       # Last solution from generation mode
+        self.assertIn("A = 'hello'", stdout)
+        self.assertIn("B = 'world'", stdout)
+        self.assertIn("참", stdout)
+        self.assertIn("거짓", stdout)
+        self.assertIn("참", stdout)
+        self.assertIn("참", stdout)
+        self.assertIn("Q = 'a'", stdout)
+        self.assertIn("P = ''", stdout)       # First solution from single char split
+        self.assertIn("P = 'a'", stdout)      # Second solution from single char split
+        self.assertIn("Q = ''", stdout)       # Second solution from single char split
+
     def test_conjunction_comma(self):
         content = """부모(존, 매리).
                      부모(매리, 쑤).

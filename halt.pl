@@ -1,1 +1,0 @@
-test_nested([[X|Xs]]) :- write(X), write(" "), write(Xs).
