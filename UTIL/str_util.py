@@ -22,6 +22,11 @@ def term_to_string(term: Term) -> str:
     elif isinstance(term, Struct):
         if term.arity == 0:
             return term.name
+        elif term.name == ":-" and term.arity == 2:
+            # Rule: head :- body
+            head = term_to_string(term.params[0])
+            body = term_to_string(term.params[1])
+            return f"{head} :- {body}"
         elif term.name == "," and term.arity == 2:
             # Don't start with comma - just join the parts
             left = term_to_string(term.params[0])

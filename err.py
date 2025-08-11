@@ -25,6 +25,17 @@ class ErrProlog(Exception):
     pass
 
 
+class AssertException(Exception):
+    """Exception used to communicate assertion requests from solver to REPL"""
+
+    def __init__(self, clause_term, assert_type: str = "assertz"):
+        from PARSER.ast import Term
+
+        self.clause_term: Term = clause_term
+        self.assert_type = assert_type  # "asserta" or "assertz"
+        super().__init__(f"Assert request: {assert_type}")
+
+
 class ErrSyntax(ErrProlog):
     def __init__(
         self,
@@ -207,6 +218,14 @@ class ErrUnification(ErrExecution):
 
 class ErrREPL(ErrProlog):
     pass
+
+
+class ErrInfiniteGeneration(ErrProlog):
+    def __init__(self, clause: str):
+        self.clause = clause
+
+    def __str__(self) -> str:
+        return f"K-Prolog doesn't support infinite solution generation, cannot excuse {self.clause}"
 
 
 class ErrInvalidCommand(ErrREPL):

@@ -161,8 +161,10 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("Y = 'hello'", stdout)
         self.assertIn("X = 'h'", stdout)
         self.assertIn("Y = 'ello'", stdout)
-        self.assertIn("X = 'hello'", stdout)  # Last solution from generation mode
-        self.assertIn("Y = ''", stdout)       # Last solution from generation mode
+        self.assertIn(
+            "X = 'hello'", stdout
+        )  # Last solution from generation mode
+        self.assertIn("Y = ''", stdout)  # Last solution from generation mode
         self.assertIn("A = 'hello'", stdout)
         self.assertIn("B = 'world'", stdout)
         self.assertIn("참", stdout)
@@ -170,9 +172,30 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("참", stdout)
         self.assertIn("참", stdout)
         self.assertIn("Q = 'a'", stdout)
-        self.assertIn("P = ''", stdout)       # First solution from single char split
-        self.assertIn("P = 'a'", stdout)      # Second solution from single char split
-        self.assertIn("Q = ''", stdout)       # Second solution from single char split
+        self.assertIn("P = ''", stdout)  # First solution from single char split
+        self.assertIn(
+            "P = 'a'", stdout
+        )  # Second solution from single char split
+        self.assertIn(
+            "Q = ''", stdout
+        )  # Second solution from single char split
+
+    def test_asserta_functionality(self):
+        commands = [
+            "asserta(fact1).",  # Add first fact
+            "asserta(fact2).",  # Add second fact (should be first now)
+            "추가(korean_fact).",  # Test Korean version
+            "fact2.",  # Query fact2 - should succeed
+            "fact1.",  # Query fact1 - should succeed
+            "korean_fact.",  # Query Korean fact - should succeed
+            "asserta(parent(bob, jane)).",  # Add complex fact
+            "parent(bob, jane).",  # Query complex fact - should succeed
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("참", stdout)  # All assertions should succeed
+        self.assertNotIn("거짓", stdout)
 
     def test_conjunction_comma(self):
         content = """부모(존, 매리).

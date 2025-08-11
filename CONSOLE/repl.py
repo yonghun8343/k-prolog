@@ -2,6 +2,7 @@ import sys
 from typing import List, Tuple
 
 from err import (
+    AssertException,
     ErrFileNotFound,
     ErrInvalidCommand,
     ErrOperator,
@@ -15,7 +16,7 @@ from PARSER.ast import Struct, Term
 from PARSER.parser import parse_string
 from SOLVER.solver import solve
 from UTIL.debug import DebugState
-from UTIL.str_util import flatten_comma_structure, format_term
+from UTIL.str_util import flatten_comma_structure, format_term, term_to_string
 
 
 class Command:
@@ -290,6 +291,24 @@ def execute(program: List[List[Term]]) -> None:
             try:
                 success, unifs = solve(program, goals[0], debug_state)
                 print_result(success, unifs)
+            except AssertException as e:
+                try:
+                    clause_str = term_to_string(e.clause_term)
+                    if not clause_str.endswith("."):
+                        clause_str += "."
+
+                    new_clauses = parse_string(clause_str)
+
+                    if e.assert_type == "asserta":
+                        program = new_clauses + program
+
+                    print("참")
+
+                except Exception as e:
+                    handle_error(
+                        ErrSyntax(f"잘못된 절 구문: {clause_str}"), "assertion"
+                    )
+                continue
             except ErrProlog as e:
                 handle_error(e, "solving")
                 continue

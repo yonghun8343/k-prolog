@@ -89,9 +89,7 @@ class TestKProlog(unittest.TestCase):
             ";",
             ";",
             ";",
-            ";",
             "순열(_리스트, [6,7]).",  # Testing permutation with first parameter being a Variable
-            ";",
             ";",
             "순열([2,3,4,5], [4,3,5,2]).",  # Testing permutation True/False
         ]

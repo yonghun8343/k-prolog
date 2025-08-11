@@ -1,7 +1,12 @@
 import itertools
 from typing import Dict, List, Tuple, Union
 
-from err import ErrList, ErrUninstantiated
+from err import (
+    ErrList,
+    ErrUninstantiated,
+    ErrUnknownPredicate,
+    ErrInfiniteGeneration,
+)
 from PARSER.ast import Struct, Term, Variable
 from SOLVER.unification import match_params, substitute_term
 
@@ -281,6 +286,48 @@ def handle_subtract(
         return True, rest_goals, [new_unif]
     else:
         return False, [], []
+
+
+def handle_member(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 2 or goal.arity != 2:
+        raise ErrUnknownPredicate("원소", len(goal.params))
+
+    l1, l2 = goal.params
+    l1 = substitute_term(unif, l1)
+    l2 = substitute_term(unif, l2)
+
+    if isinstance(l2, Variable):
+        raise ErrInfiniteGeneration(
+            goal
+        )  # or could use generate_list and have a limit on n
+    if isinstance(l1, Variable):
+        extracted = extract_list(l2)
+        if extracted is not None:
+            extracted_structs = []
+            print(f"extracted is {extracted}")
+            for m in extracted:
+                print(f"appending {Struct(m, 0, []).__repr__()}")
+                extracted_structs.append(Struct(m, 0, [])) #TODO here
+            success, new_unif = match_params([l1], extracted_structs, unif)
+            return success, rest_goals, [new_unif] if success else [unif]
+        else:
+            print("here")
+            return False, rest_goals, [unif]
+    else:
+        extracted = extract_list(l2)
+        if extracted is not None:
+            if l1 in extracted:
+                return True, rest_goals, [unif]
+            else:
+                return False, rest_goals, [unif]
+        else:
+            return False, rest_goals, [unif]
+        # call extract list on l2
+        # if extract list returns none, then return false
+        # else check if l1 is in l2 (need to convert l1 into python compatible?)
+        # match params then return
 
 
 def generate_list(n: int) -> Term:

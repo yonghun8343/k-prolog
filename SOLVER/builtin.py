@@ -2,6 +2,7 @@
 from typing import Dict, List, Tuple
 
 from err import (
+    AssertException,
     ErrArithmetic,
     ErrDivisionByZero,
     ErrNotNumber,
@@ -21,6 +22,7 @@ from PARSER.Data.list import (
     handle_is_list,
     handle_reverse,
     handle_subtract,
+    handle_member
 )
 from PARSER.parser import parse_struct
 from UTIL.str_util import struct_to_infix
@@ -380,7 +382,6 @@ def handle_atom_concat(
     l3 = substitute_term(unif, l3)
 
     def create_quoted_atom(value: str) -> Struct:
-        """Create a Struct representing an atom wrapped in single quotes for display"""
         if value == "":
             return Struct("''", 0, [])
         else:
@@ -498,6 +499,20 @@ def handle_atom_concat(
                 return False, rest_goals, []
 
 
+def handle_asserta(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 1:
+        raise ErrUnknownPredicate("asserta", len(goal.params))
+
+    clause_term = substitute_term(unif, goal.params[0])
+
+    if isinstance(clause_term, Variable):
+        raise ErrUninstantiated(clause_term.name, "추가")
+
+    raise AssertException(clause_term, "asserta")
+
+
 BUILTINS = {
     "halt": None,
     "종료": None,
@@ -547,6 +562,10 @@ BUILTINS = {
     "변수아닌가": handle_nonvar,
     "atom_concat": handle_atom_concat,
     "산수연결": handle_atom_concat,
+    "asserta": handle_asserta,
+    "추가": handle_asserta,
+    "member": handle_member,
+    "원소" : handle_member
 }
 
 
