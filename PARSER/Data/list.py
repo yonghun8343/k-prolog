@@ -6,6 +6,7 @@ from err import (
     ErrUninstantiated,
     ErrUnknownPredicate,
     ErrInfiniteGeneration,
+    ErrType
 )
 from PARSER.ast import Struct, Term, Variable
 from SOLVER.unification import match_params, substitute_term
@@ -472,6 +473,160 @@ def handle_keysort(
     except Exception:
         return False, rest_goals, []
 
+def handle_atom_chars(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 2:
+        raise ErrUnknownPredicate("문자리스트", len(goal.params))
+    
+    atom_param, chars_param = goal.params
+    atom_param = substitute_term(unif, atom_param)
+    chars_param = substitute_term(unif, chars_param)
+    
+    # both are variables - error
+    if isinstance(atom_param, Variable) and isinstance(chars_param, Variable):
+        raise ErrUninstantiated(f"{atom_param.name}, {chars_param.name}", "문자리스트")
+    
+    # atom is given, generate character list
+    if not isinstance(atom_param, Variable):
+        if not (isinstance(atom_param, Struct) and atom_param.arity == 0):
+            raise ErrType(str(atom_param), "원자")
+        
+        atom_str = atom_param.name
+        
+        # strip single quotes if present
+        if atom_str.startswith("'") and atom_str.endswith("'") and len(atom_str) >= 2:
+            atom_str = atom_str[1:-1]
+        
+        # convert each character to a Struct with single quotes
+        char_list = []
+        for char in atom_str:
+            char_list.append(Struct(f"'{char}'", 0, []))
+        
+        chars_prolog_list = PrologList(char_list).to_struct()
+        
+        success, new_unif = match_params([chars_param], [chars_prolog_list], unif)
+        return success, rest_goals, [new_unif] if success else []
+    
+    # character list is given, generate atom
+    elif not isinstance(chars_param, Variable):
+        if is_empty_list(chars_param):
+            empty_atom = Struct("''", 0, [])
+            success, new_unif = match_params([atom_param], [empty_atom], unif)
+            return success, rest_goals, [new_unif] if success else []
+        
+        char_elements = []
+        current = chars_param
+        
+        while True:
+            if is_empty_list(current):
+                break
+            elif isinstance(current, Struct) and current.name == "." and current.arity == 2:
+                head, tail = current.params
+                
+                if not (isinstance(head, Struct) and head.arity == 0):
+                    raise ErrType(str(head), "문자")
+                
+                char_str = head.name
+                if char_str.startswith("'") and char_str.endswith("'") and len(char_str) >= 2:
+                    char_str = char_str[1:-1]
+                
+                if len(char_str) != 1:
+                    raise ErrType(head.name, "단일 문자")
+                
+                char_elements.append(char_str)
+                current = tail
+            else:
+                raise ErrType(str(chars_param), "문자 리스트")
+        
+        atom_str = ''.join(char_elements)
+        
+        if atom_str == "" or any(not c.isalnum() and c != '_' for c in atom_str):
+            atom_struct = Struct(f"'{atom_str}'", 0, [])
+        else:
+            atom_struct = Struct(atom_str, 0, [])
+        
+        success, new_unif = match_params([atom_param], [atom_struct], unif)
+        return success, rest_goals, [new_unif] if success else []
+    
+    return False, rest_goals, [] 
+
+
+def handle_flatten(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 2 or goal.arity != 2:
+        raise ErrUnknownPredicate("평평히", len(goal.params))
+
+    input_list, output_list = goal.params
+    input_list = substitute_term(unif, input_list)
+    output_list = substitute_term(unif, output_list)
+
+    # flatten(X, Y) where both are variables
+    if isinstance(input_list, Variable) and isinstance(output_list, Variable):
+        result_list = PrologList([input_list]).to_struct()
+        success, new_unif = match_params([output_list], [result_list], unif)
+        return success, rest_goals, [new_unif] if success else []
+
+    # flatten(X, [1,2,3]) where first is variable, second is instantiated
+    if isinstance(input_list, Variable) and not isinstance(output_list, Variable):
+        return False, rest_goals, []
+
+    # flatten([1,2,[3],[4,[5]]], X) where first is instantiated, second is variable
+    if not isinstance(input_list, Variable) and isinstance(output_list, Variable):
+        try:
+            flattened_elements = flatten_recursive(input_list)
+            flattened_list = PrologList(flattened_elements).to_struct()
+            success, new_unif = match_params([output_list], [flattened_list], unif)
+            return success, rest_goals, [new_unif] if success else []
+        except:
+            return False, rest_goals, []
+
+    # flatten([1,2,3], [1,2,3]) where both are instantiated
+    if not isinstance(input_list, Variable) and not isinstance(output_list, Variable):
+        try:
+            flattened_elements = flatten_recursive(input_list)
+            flattened_list = PrologList(flattened_elements).to_struct()
+            success, _ = match_params([output_list], [flattened_list], {})
+            return success, rest_goals, [unif] if success else []
+        except:
+            return False, rest_goals, []
+
+    return False, rest_goals, []
+
+
+def flatten_recursive(term: Term) -> List[Term]:
+    if is_empty_list(term):
+        return []
+    
+    if not is_list_cons(term):
+        return [term]
+    
+    result = []
+    current = term
+    
+    while True:
+        if is_empty_list(current):
+            break
+        elif is_list_cons(current):
+            head, tail = get_head_tail(current)
+            
+            if is_list_cons(head) or is_empty_list(head):
+                flattened_head = flatten_recursive(head)
+                result.extend(flattened_head)
+            else:
+                result.append(head)
+            
+            current = tail
+        else:
+            if is_list_cons(current) or is_empty_list(current):
+                flattened_tail = flatten_recursive(current)
+                result.extend(flattened_tail)
+            else:
+                result.append(current)
+            break
+    
+    return result
 
 def generate_list(n: int) -> Term:
     if n == 0:

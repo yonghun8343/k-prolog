@@ -357,6 +357,73 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("_최대1 = 7", stdout)
         self.assertIn("_최대2 = 8", stdout)
 
+    def test_char_code(self):
+        commands = [
+            "문자코드(a, _코드).",  # Testing char_code with lowercase letter
+            "문자코드('A', _코드2).",  # Testing char_code with uppercase letter
+            "문자코드('0', _코드3).",  # Testing char_code with digit
+            "문자코드(' ', _코드4).",  # Testing char_code with space
+            "문자코드('가', _코드5).",  # Testing char_code with Korean character
+            "문자코드(_문자, 97).",  # Testing char_code with code to char (97 = 'a')
+            "문자코드(_문자2, 65).",  # Testing char_code with code to char (65 = 'A')
+            "문자코드(_문자3, 48).",  # Testing char_code with code to char (48 = '0')
+            "문자코드('a', 97).",  # Testing char_code verification (should succeed)
+            "문자코드('a', 98).",  # Testing char_code wrong verification (should fail)
+            "문자코드('!', _코드6).",  # Testing char_code with special character
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn(
+            "참", stdout
+        )  # Should have multiple 참 for successful conversions
+        self.assertIn("거짓", stdout)  # Should have 거짓 for wrong verification
+        self.assertIn("_코드 = 97", stdout)  # ASCII code for 'a'
+        self.assertIn("_코드2 = 65", stdout)  # ASCII code for 'A'
+        self.assertIn("_코드3 = 48", stdout)  # ASCII code for '0'
+        self.assertIn("_코드4 = 32", stdout)  # ASCII code for space
+        self.assertIn("_문자 = a", stdout)  # Character for code 97
+        self.assertIn("_문자2 = A", stdout)  # Character for code 65
+        self.assertIn("_문자3 = 0", stdout)  # Character for code 48
+        self.assertIn("_코드6 = 33", stdout)  # ASCII code for '!'
+
+    def test_atom_chars(self):
+        commands = [
+            "문자리스트(abc, _문자들).",  # Testing atom_chars with simple atom
+            "문자리스트(123, _숫자들).",  # Testing atom_chars with number atom
+            "문자리스트('hello', _헬로).",  # Testing atom_chars with quoted atom
+            "문자리스트('', _빈문자열).",  # Testing atom_chars with empty atom
+            "문자리스트(안녕, _한글).",  # Testing atom_chars with Korean atom
+            "문자리스트(_원자, ['a', 'b', 'c']).",  # Testing atom_chars from chars to atom
+            "문자리스트(_원자2, ['1', '2', '3']).",  # Testing atom_chars from number chars to atom
+            "문자리스트(_원자3, []).",  # Testing atom_chars from empty list to atom
+            "문자리스트(hello, ['h', 'e', 'l', 'l', 'o']).",  # Testing atom_chars verification (should succeed)
+            "문자리스트(hello, ['h', 'i']).",  # Testing atom_chars wrong verification (should fail)
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn(
+            "참", stdout
+        )  # Should have multiple 참 for successful conversions
+        self.assertIn("거짓", stdout)  # Should have 거짓 for wrong verification
+        self.assertIn(
+            "_문자들 = ['a', 'b', 'c']", stdout
+        )  # Characters for 'abc'
+        self.assertIn(
+            "_숫자들 = ['1', '2', '3']", stdout
+        )  # Characters for '123'
+        self.assertIn(
+            "_헬로 = ['h', 'e', 'l', 'l', 'o']", stdout
+        )  # Characters for 'hello'
+        self.assertIn("_빈문자열 = []", stdout)  # Empty list for empty atom
+        self.assertIn(
+            "_한글 = ['안', '녕']", stdout
+        )  # Characters for Korean '안녕'
+        self.assertIn("_원자 = abc", stdout)  # Atom from chars ['a', 'b', 'c']
+        self.assertIn("_원자2 = 123", stdout)  # Atom from chars ['1', '2', '3']
+        self.assertIn("_원자3 = ''", stdout)  # Empty atom from empty list
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

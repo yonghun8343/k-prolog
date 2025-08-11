@@ -25,7 +25,9 @@ from PARSER.Data.list import (
     handle_member,
     handle_memberchk,
     handle_sort,
-    handle_keysort
+    handle_keysort,
+    handle_flatten,
+    handle_atom_chars,
 )
 from PARSER.parser import parse_struct
 from UTIL.str_util import struct_to_infix
@@ -506,7 +508,7 @@ def handle_asserta(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 1:
-        raise ErrUnknownPredicate("asserta", len(goal.params))
+        raise ErrUnknownPredicate("추가", len(goal.params))
 
     clause_term = substitute_term(unif, goal.params[0])
 
@@ -514,6 +516,63 @@ def handle_asserta(
         raise ErrUninstantiated(clause_term.name, "추가")
 
     raise AssertException(clause_term, "asserta")
+
+
+def handle_char_code(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 2:
+        raise ErrUnknownPredicate("문자코드", len(goal.params))
+
+    char_param, code_param = goal.params
+
+    char_param = substitute_term(unif, char_param)
+    code_param = substitute_term(unif, code_param)
+
+    if isinstance(char_param, Variable) and isinstance(code_param, Variable):
+        raise ErrUninstantiated(
+            f"{char_param.name}, {code_param.name}", "문자코드"
+        )
+
+    if not isinstance(char_param, Variable):
+        if not (isinstance(char_param, Struct) and char_param.arity == 0):
+            raise ErrType(str(char_param), "문자")
+
+        char_str = char_param.name
+
+        if (
+            char_str.startswith("'")
+            and char_str.endswith("'")
+            and len(char_str) >= 2
+        ):
+            char_str = char_str[1:-1]
+
+        if len(char_str) != 1:
+            raise ErrType(char_param.name, "단일 문자")
+
+        char_code = ord(char_str)
+        code_term = Struct(str(char_code), 0, [])
+        success, new_unif = match_params([code_param], [code_term], unif)
+        return success, rest_goals, [new_unif] if success else []
+
+    elif not isinstance(code_param, Variable):
+        if not (isinstance(code_param, Struct) and code_param.arity == 0):
+            raise ErrType(str(code_param), "정수")
+
+        try:
+            code_int = int(code_param.name)
+            if code_int < 0 or code_int > 1114111:
+                raise ErrType(str(code_int), "유효한 문자 코드")
+
+            char_str = chr(code_int)
+            char_term = Struct(char_str, 0, [])
+            success, new_unif = match_params([char_param], [char_term], unif)
+            return success, rest_goals, [new_unif] if success else []
+
+        except (ValueError, OverflowError):
+            raise ErrType(code_param.name, "정수")
+
+    return False, rest_goals, []
 
 
 BUILTINS = {
@@ -574,7 +633,13 @@ BUILTINS = {
     "sort": handle_sort,
     "정렬": handle_sort,
     "keysort": handle_keysort,
-    "키정렬": handle_keysort
+    "키정렬": handle_keysort,
+    "char_code": handle_char_code,
+    "문자코드": handle_char_code,
+    "atom_chars": handle_atom_chars,
+    "문자리스트": handle_atom_chars,
+    "flatten": handle_flatten,
+    "평평히": handle_flatten,
 }
 
 

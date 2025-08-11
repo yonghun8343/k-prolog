@@ -193,7 +193,43 @@ class TestKProlog(unittest.TestCase):
             "_결과6 = [1-y, 1-z, 2-w, 3-x]", stdout
         )  # Duplicate keys in stable order
 
-    # def test_n_queens(self):
+    def test_flatten(self):
+        commands = [
+            "평평히([1,2,[3],[4,[5]]], _결과).",  # Testing flatten with nested lists
+            "평평히([1,[2,3],[[4]]], _결과2).",  # Testing flatten with more complex nesting
+            "평평히([a,[b,[c,d]],e], _결과3).",  # Testing flatten with atoms
+            "평평히([], _결과4).",  # Testing flatten with empty list
+            "평평히([1,2,3], _결과5).",  # Testing flatten with already flat list
+            "평평히([[],[1],[],[2,3],[]], _결과6).",  # Testing flatten with empty sublists
+            "평평히([1,2,[3]], [1,2,3]).",  # Testing flatten verification (should succeed)
+            "평평히([1,[2,3]], [1,2,4]).",  # Testing flatten wrong verification (should fail)
+            "평평히(_엑스, [1,2,3]).",  # Testing flatten with variable first param (should fail)
+            "평평히(_엑스, _와이).",  # Testing flatten with both variables (special case)
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn(
+            "참", stdout
+        )  # Should have multiple 참 for successful flattening
+        self.assertIn(
+            "거짓", stdout
+        )  # Should have 거짓 for wrong verification and variable first param
+        self.assertIn(
+            "_결과 = [1, 2, 3, 4, 5]", stdout
+        )  # Nested lists flattened
+        self.assertIn(
+            "_결과2 = [1, 2, 3, 4]", stdout
+        )  # Complex nesting flattened
+        self.assertIn("_결과3 = [a, b, c, d, e]", stdout)  # Atoms flattened
+        self.assertIn("_결과4 = []", stdout)  # Empty list remains empty
+        self.assertIn(
+            "_결과5 = [1, 2, 3]", stdout
+        )  # Already flat list unchanged
+        self.assertIn("_결과6 = [1, 2, 3]", stdout)  # Empty sublists removed
+        self.assertIn("_와이 = [_엑스]", stdout)  # Special case: both variables
+
+    
 
 
 if __name__ == "__main__":
