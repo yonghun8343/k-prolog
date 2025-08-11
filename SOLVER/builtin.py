@@ -22,7 +22,10 @@ from PARSER.Data.list import (
     handle_is_list,
     handle_reverse,
     handle_subtract,
-    handle_member
+    handle_member,
+    handle_memberchk,
+    handle_sort,
+    handle_keysort
 )
 from PARSER.parser import parse_struct
 from UTIL.str_util import struct_to_infix
@@ -565,7 +568,13 @@ BUILTINS = {
     "asserta": handle_asserta,
     "추가": handle_asserta,
     "member": handle_member,
-    "원소" : handle_member
+    "원소": handle_member,
+    "memberchk": handle_memberchk,
+    "원소점검": handle_memberchk,
+    "sort": handle_sort,
+    "정렬": handle_sort,
+    "keysort": handle_keysort,
+    "키정렬": handle_keysort
 }
 
 

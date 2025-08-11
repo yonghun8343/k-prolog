@@ -51,8 +51,17 @@ def format_term(term: Term) -> str:
             if term.arity == 0:
                 return term.name
             else:
-                params = ", ".join(format_term(p) for p in term.params)
-                return f"{term.name}({params})"
+                binary_operators = [
+                    "+", "-", "*", "/", "//", "mod", "=:=", "=\\=", 
+                    "<", ">", ">=", "=<", "=", "is", ":="
+                ]
+                if term.name in binary_operators and term.arity == 2:
+                    left = format_term(term.params[0])
+                    right = format_term(term.params[1])
+                    return f"{left}{term.name}{right}"
+                else:
+                    params = ", ".join(format_term(p) for p in term.params)
+                    return f"{term.name}({params})"
     elif isinstance(term, Variable):
         return term.name
     else:

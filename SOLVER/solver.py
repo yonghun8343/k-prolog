@@ -32,7 +32,11 @@ from .unification import (
 
 def has_delayed_constraints(goals: List[Term]) -> bool:
     for goal in goals:
-        if isinstance(goal, Struct) and hasattr(goal, '_delay_count') and goal._delay_count > 0:
+        if (
+            isinstance(goal, Struct)
+            and hasattr(goal, "_delay_count")
+            and goal._delay_count > 0
+        ):
             return True
     return False
 
@@ -53,23 +57,26 @@ def solve_goal_with_constraint_handling(
     goal: Term,
     unif: Dict[str, Term],
     debug_state: DebugState,
-    max_constraint_attempts: int = 3
+    max_constraint_attempts: int = 3,
 ) -> Tuple[bool, List[Dict[str, Term]], bool]:
-
     # first attempt with normal solving
     success, solutions = solve_with_choice_points(
         program, [goal], unif, debug_state, []
     )
-    
+
     if success:
         return success, solutions, False
-    
+
     # check if the goal likely contains arithmetic constraints that might cause delays
     if contains_arithmetic_constraints(goal):
         # this goal might fail due to unresolved constraints rather than logical failure
         # in a more sophisticated implementation, we'd track the exact cause of failure
-        return False, [], True  # assume unresolved constraints for arithmetic goals
-    
+        return (
+            False,
+            [],
+            True,
+        )  # assume unresolved constraints for arithmetic goals
+
     # for non-arithmetic goals, assume definitive failure
     return False, [], False
 
@@ -159,12 +166,12 @@ def handle_findall(
             and substituted_query.arity == 2
         ):
             flattened_goals = flatten_comma_structure(substituted_query)
-            success, new_unifs = solve_with_unification(
-                program, flattened_goals, {}, debug_state
+            success, new_unifs = solve_with_choice_points(
+                program, flattened_goals, {}, debug_state, []
             )
         else:
-            success, new_unifs = solve_with_unification(
-                program, [substituted_query], {}, debug_state
+            success, new_unifs = solve_with_choice_points(
+                program, [substituted_query], {}, debug_state, []
             )
 
         solutions = []
@@ -229,8 +236,8 @@ def handle_forall(goal, rest_goals, unif, program, debug_state):
 
         test_instantiated = substitute_term(test_unif, test)
 
-        success, _ = solve_with_unification(
-            program, [test_instantiated], {}, debug_state
+        success, _ = solve_with_choice_points(
+            program, [test_instantiated], {}, debug_state, []
         )
         if not success:
             return False, [], []
@@ -272,8 +279,8 @@ def handle_maplist(goal, rest_goals, unif, program, debug_state):
     else:
         pred_call = Struct(str(pred), len(heads), heads)
 
-    success, new_unifs = solve_with_unification(
-        program, [pred_call], unif, debug_state
+    success, new_unifs = solve_with_choice_points(
+        program, [pred_call], unif, debug_state, []
     )
     if not success or not new_unifs:
         return False, [], []
@@ -297,20 +304,20 @@ def handle_arrow(
         raise ErrUnknownPredicate("->", len(goal.params))
 
     try:
-        success, new_unifs = solve_with_unification(
-            program, [goal.params[0]], unif, debug_state
+        success, new_unifs = solve_with_choice_points(
+            program, [goal.params[0]], unif, debug_state, []
         )
 
         if success:
             condition_unif = new_unifs[0] if new_unifs else unif
-            then_success, then_unifs = solve_with_unification(
-                program, [goal.params[1]], condition_unif, debug_state
+            then_success, then_unifs = solve_with_choice_points(
+                program, [goal.params[1]], condition_unif, debug_state, []
             )
             return then_success, rest_goals, then_unifs
         else:
             if len(goal.params) == 3:
-                else_success, else_unifs = solve_with_unification(
-                    program, [goal.params[2]], unif, debug_state
+                else_success, else_unifs = solve_with_choice_points(
+                    program, [goal.params[2]], unif, debug_state, []
                 )
                 return else_success, rest_goals, else_unifs
             else:
@@ -321,168 +328,168 @@ def handle_arrow(
         return False, rest_goals, []
 
 
-def solve_with_unification(
-    program: List[List[Term]],
-    goals: List[Term],
-    old_unif: Dict[str, Term],
-    debug_state: DebugState,
-) -> Tuple[bool, List[Dict[str, Term]]]:
-    if not goals:
-        return True, [old_unif]
-    x, *rest = goals
-    if debug_state.trace_mode:
-        show_call_trace(x, debug_state.call_depth)
-        handle_trace_input(debug_state)
+# def solve_with_unification(
+#     program: List[List[Term]],
+#     goals: List[Term],
+#     old_unif: Dict[str, Term],
+#     debug_state: DebugState,
+# ) -> Tuple[bool, List[Dict[str, Term]]]:
+#     if not goals:
+#         return True, [old_unif]
+#     x, *rest = goals
+#     if debug_state.trace_mode:
+#         show_call_trace(x, debug_state.call_depth)
+#         handle_trace_input(debug_state)
 
-    debug_state.call_depth += 1
+#     debug_state.call_depth += 1
 
-    try:
-        if isinstance(x, Struct) and x.name == "," and x.arity == 2:
-            flattened_goals = flatten_comma_structure(x)
-            return solve_with_unification(
-                program, flattened_goals + rest, old_unif, debug_state
-            )
-        if (
-            isinstance(x, Struct)
-            and ((x.name == "fail") or (x.name == "포기"))
-            and x.arity == 0
-        ):
-            if debug_state.trace_mode:
-                show_call_trace(x, debug_state.call_depth - 1)
-                handle_trace_input(debug_state)
-            return False, []
+#     try:
+#         if isinstance(x, Struct) and x.name == "," and x.arity == 2:
+#             flattened_goals = flatten_comma_structure(x)
+#             return solve_with_unification(
+#                 program, flattened_goals + rest, old_unif, debug_state
+#             )
+#         if (
+#             isinstance(x, Struct)
+#             and ((x.name == "fail") or (x.name == "포기"))
+#             and x.arity == 0
+#         ):
+#             if debug_state.trace_mode:
+#                 show_call_trace(x, debug_state.call_depth - 1)
+#                 handle_trace_input(debug_state)
+#             return False, []
 
-        if isinstance(x, Struct) and x.name == "!" and x.arity == 0:
-            success, solutions = solve_with_unification(
-                program,
-                rest,
-                old_unif,
-                debug_state,
-            )
-            if success:
-                marked_solutions = []
-                for solution in solutions:
-                    marked_solution = solution.copy()
-                    marked_solution["__CUT_ENCOUNTERED__"] = True
-                    marked_solutions.append(marked_solution)
-                return True, marked_solutions
-            else:
-                cut_marker = old_unif.copy()
-                cut_marker["__CUT_ENCOUNTERED__"] = True
-                return False, [cut_marker]
+#         if isinstance(x, Struct) and x.name == "!" and x.arity == 0:
+#             success, solutions = solve_with_unification(
+#                 program,
+#                 rest,
+#                 old_unif,
+#                 debug_state,
+#             )
+#             if success:
+#                 marked_solutions = []
+#                 for solution in solutions:
+#                     marked_solution = solution.copy()
+#                     marked_solution["__CUT_ENCOUNTERED__"] = True
+#                     marked_solutions.append(marked_solution)
+#                 return True, marked_solutions
+#             else:
+#                 cut_marker = old_unif.copy()
+#                 cut_marker["__CUT_ENCOUNTERED__"] = True
+#                 return False, [cut_marker]
 
-        if isinstance(x, Struct) and (
-            (x.name == "not") or (x.name == "논리부정")
-        ):
-            if not len(x.params) == 1:
-                raise ErrInvalidCommand(f"{x.__repr__()}")
+#         if isinstance(x, Struct) and (
+#             (x.name == "not") or (x.name == "논리부정")
+#         ):
+#             if not len(x.params) == 1:
+#                 raise ErrUnknownPredicate("논리부정", len(x.params))
 
-            inner_goal = substitute_term(old_unif, x.params[0])
-            success, solutions = solve_with_unification(
-                program,
-                [inner_goal],
-                old_unif,
-                debug_state,
-            )
-            if success:
-                return False, []
-            else:
-                if debug_state.trace_mode:
-                    show_exit_trace(x, debug_state.call_depth - 1)
-                    handle_trace_input(debug_state)
+#             inner_goal = substitute_term(old_unif, x.params[0])
+#             success, solutions = solve_with_unification(
+#                 program,
+#                 [inner_goal],
+#                 old_unif,
+#                 debug_state,
+#             )
+#             if success:
+#                 return False, []
+#             else:
+#                 if debug_state.trace_mode:
+#                     show_exit_trace(x, debug_state.call_depth - 1)
+#                     handle_trace_input(debug_state)
 
-                return solve_with_unification(
-                    program, rest, old_unif, debug_state
-                )
+#                 return solve_with_unification(
+#                     program, rest, old_unif, debug_state
+#                 )
 
-        if isinstance(x, Struct) and (
-            x.name in {"findall", "setof", "forall", "maplist", "->"}
-            or has_builtin(x.name)
-        ):
-            internal_handlers = {
-                "findall": handle_findall,
-                "setof": handle_setof,
-                "forall": handle_forall,
-                "maplist": handle_maplist,
-                "->": handle_arrow,
-            }
-            if x.name in internal_handlers:
-                success, new_goals, new_unifications = internal_handlers.get(
-                    x.name
-                )(x, rest, old_unif, program, debug_state)
-            else:
-                success, new_goals, new_unifications = handle_builtins(
-                    x, rest, old_unif
-                )
-            if success:
-                all_solutions = []
-                for unif in new_unifications:
-                    success, solutions = solve_with_unification(
-                        program,
-                        new_goals,
-                        unif,
-                        debug_state,
-                    )
+#         if isinstance(x, Struct) and (
+#             x.name in {"findall", "setof", "forall", "maplist", "->"}
+#             or has_builtin(x.name)
+#         ):
+#             internal_handlers = {
+#                 "findall": handle_findall,
+#                 "setof": handle_setof,
+#                 "forall": handle_forall,
+#                 "maplist": handle_maplist,
+#                 "->": handle_arrow,
+#             }
+#             if x.name in internal_handlers:
+#                 success, new_goals, new_unifications = internal_handlers.get(
+#                     x.name
+#                 )(x, rest, old_unif, program, debug_state)
+#             else:
+#                 success, new_goals, new_unifications = handle_builtins(
+#                     x, rest, old_unif
+#                 )
+#             if success:
+#                 all_solutions = []
+#                 for unif in new_unifications:
+#                     success, solutions = solve_with_unification(
+#                         program,
+#                         new_goals,
+#                         unif,
+#                         debug_state,
+#                     )
 
-                    if success:
-                        all_solutions.extend(solutions)
-                        if any(
-                            "__CUT_ENCOUNTERED__" in solution
-                            for solution in solutions
-                        ):
-                            clean_solutions = [
-                                {
-                                    k: v
-                                    for k, v in sol.items()
-                                    if k != "__CUT_ENCOUNTERED__"
-                                }
-                                for sol in all_solutions
-                            ]
-                            return True, clean_solutions
+#                     if success:
+#                         all_solutions.extend(solutions)
+#                         if any(
+#                             "__CUT_ENCOUNTERED__" in solution
+#                             for solution in solutions
+#                         ):
+#                             clean_solutions = [
+#                                 {
+#                                     k: v
+#                                     for k, v in sol.items()
+#                                     if k != "__CUT_ENCOUNTERED__"
+#                                 }
+#                                 for sol in all_solutions
+#                             ]
+#                             return True, clean_solutions
 
-                if debug_state.trace_mode and all_solutions:
-                    show_exit_trace(x, debug_state.call_depth - 1)
-                    handle_trace_input(debug_state)
+#                 if debug_state.trace_mode and all_solutions:
+#                     show_exit_trace(x, debug_state.call_depth - 1)
+#                     handle_trace_input(debug_state)
 
-                return bool(all_solutions), all_solutions
+#                 return bool(all_solutions), all_solutions
 
-        clauses = [c for c in program if is_relevant(x, c)]
-        all_solutions = []
+#         clauses = [c for c in program if is_relevant(x, c)]
+#         all_solutions = []
 
-        for clause in clauses:
-            debug_state.seq += 1000
-            renamed_clause = init_rules(clause, debug_state)
-            # seq = new_seq
-            is_match, new_goals, unif = match_predicate(
-                x, rest, old_unif, renamed_clause
-            )
+#         for clause in clauses:
+#             debug_state.seq += 1000
+#             renamed_clause = init_rules(clause, debug_state)
+#             # seq = new_seq
+#             is_match, new_goals, unif = match_predicate(
+#                 x, rest, old_unif, renamed_clause
+#             )
 
-            if is_match:
-                success, solutions = solve_with_unification(
-                    program,
-                    new_goals,
-                    unif,
-                    debug_state,
-                )
+#             if is_match:
+#                 success, solutions = solve_with_unification(
+#                     program,
+#                     new_goals,
+#                     unif,
+#                     debug_state,
+#                 )
 
-                if any(
-                    "__CUT_ENCOUNTERED__" in solution for solution in solutions
-                ):
-                    if success:
-                        all_solutions.extend(solutions)
+#                 if any(
+#                     "__CUT_ENCOUNTERED__" in solution for solution in solutions
+#                 ):
+#                     if success:
+#                         all_solutions.extend(solutions)
 
-                    return success, solutions
-                if success:
-                    all_solutions.extend(solutions)
+#                     return success, solutions
+#                 if success:
+#                     all_solutions.extend(solutions)
 
-        if debug_state.trace_mode and all_solutions:
-            show_exit_trace(x, debug_state.call_depth - 1)
-            handle_trace_input(debug_state)
+#         if debug_state.trace_mode and all_solutions:
+#             show_exit_trace(x, debug_state.call_depth - 1)
+#             handle_trace_input(debug_state)
 
-        return bool(all_solutions), all_solutions
+#         return bool(all_solutions), all_solutions
 
-    finally:
-        debug_state.call_depth -= 1
+#     finally:
+#         debug_state.call_depth -= 1
 
 
 class ChoicePoint:
@@ -525,7 +532,7 @@ def solve_with_choice_points(
     if choice_stack is None:
         choice_stack = []
 
-    all_solutions = []  
+    all_solutions = []
     # main solving loop - replaces recursion with iteration
     while True:
         if not goals:
@@ -575,32 +582,15 @@ def solve_with_choice_points(
                 x.name == "not" or x.name == "논리부정"
             ):
                 if not len(x.params) == 1:
-                    raise ErrInvalidCommand(f"{x.__repr__()}")
-
+                    raise ErrUnknownPredicate("논리부정", len(x.params))
                 inner_goal = substitute_term(unif, x.params[0])
 
-                inner_success, _, has_unresolved = solve_goal_with_constraint_handling(
-                    program, inner_goal, unif, debug_state
+                inner_success, _ = solve_with_choice_points(
+                    program, [inner_goal], unif, debug_state, []
                 )
 
                 if inner_success:
-                    backtrack_result = backtrack(
-                        program, choice_stack, debug_state
-                    )
-                    if backtrack_result is None:
-                        return len(all_solutions) > 0, all_solutions
-                    goals, unif = backtrack_result
-                    continue
-                elif has_unresolved:
-                    if len(rest) > 0:
-                        # try to delay this negation goal
-                        delay_count = getattr(x, '_delay_count', 0)
-                        if delay_count < 3:
-                            x._delay_count = delay_count + 1
-                            goals = rest + [x]
-                            continue
-                    
-                    # can't delay further - fail with backtrack
+                    # The inner goal succeeded, so negation fails
                     backtrack_result = backtrack(
                         program, choice_stack, debug_state
                     )
@@ -609,6 +599,7 @@ def solve_with_choice_points(
                     goals, unif = backtrack_result
                     continue
                 else:
+                    # The inner goal failed, so negation succeeds
                     if debug_state.trace_mode:
                         show_exit_trace(x, debug_state.call_depth - 1)
                         handle_trace_input(debug_state)
@@ -730,7 +721,6 @@ def try_next_alternative(
     choice_stack: List[ChoicePoint],
     debug_state: DebugState,
 ) -> Optional[Tuple[List[Term], Dict[str, Term]]]:
-
     while choice_point.current_index < len(choice_point.alternatives):
         alternative = choice_point.alternatives[choice_point.current_index]
         choice_point.current_index += 1
@@ -752,7 +742,7 @@ def try_next_alternative(
                     choice_stack.append(choice_point)
                 return new_goals, new_unif
 
-        else: # unification (Dict[str, Term])
+        else:  # unification (Dict[str, Term])
             # put choice point back if there are more alternatives
             if choice_point.current_index < len(choice_point.alternatives):
                 choice_stack.append(choice_point)
@@ -766,7 +756,6 @@ def backtrack(
     choice_stack: List[ChoicePoint],
     debug_state: DebugState,
 ) -> Optional[Tuple[List[Term], Dict[str, Term]]]:
-
     while choice_stack:
         choice_point = choice_stack.pop()
 
@@ -784,7 +773,6 @@ def backtrack(
 def solve(
     program: List[List[Term]], goals: List[Term], debug_state: DebugState
 ) -> Tuple[bool, List[Dict[str, Term]]]:
-
     result, unifs = solve_with_choice_points(program, goals, {}, debug_state)
     return result, [extract_variable(get_variables(goals), u) for u in unifs]
 

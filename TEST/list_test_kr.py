@@ -106,6 +106,93 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("_리스트 = [7, 6]", stdout)
         self.assertIn("참", stdout)
 
+    def test_member(self):
+        commands = [
+            "원소(1, [1,2,3]).",  # Testing member with first element
+            "원소(3, [1,2,3]).",  # Testing member with last element
+            "원소(2, [1,2,3]).",  # Testing member with middle element
+            "원소(4, [1,2,3]).",  # Testing member with non-existent element, should fail
+            "원소(_엑스, [1,2,3]).",  # Testing member with variable, should give first solution
+            ";",  # Get next solution
+            ";",  # Get next solution
+            "원소(a, [a|b]).",
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn(
+            "참", stdout
+        )  # Should have multiple 참 for successful matches
+        self.assertIn(
+            "거짓", stdout
+        )  # Should have 거짓 for non-existent element
+        self.assertIn("_엑스 = 1", stdout)  # First solution
+        self.assertIn("_엑스 = 2", stdout)  # Second solution
+        self.assertIn("_엑스 = 3", stdout)  # Third solution
+        self.assertIn("참", stdout)
+
+    def test_sort(self):
+        commands = [
+            "정렬([3,1,4,1,5], _결과).",  # Testing sort with duplicates
+            "정렬([1,2,3], _결과2).",  # Testing sort with already sorted list
+            "정렬([3,2,1], _결과3).",  # Testing sort with reverse order
+            "정렬([], _결과4).",  # Testing sort with empty list
+            "정렬([1], _결과5).",  # Testing sort with single element
+            "정렬([a,c,b,a], _결과6).",  # Testing sort with atoms and duplicates
+            "정렬([3,1,4,1,5], [1,3,4,5]).",  # Testing sort with expected result (should succeed)
+            "정렬([3,1,4,1,5], [1,1,3,4,5]).",  # Testing sort with wrong expected result (should fail)
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn(
+            "참", stdout
+        )  # Should have multiple 참 for successful sorts
+        self.assertIn(
+            "거짓", stdout
+        )  # Should have 거짓 for wrong expected result
+        self.assertIn(
+            "_결과 = [1, 3, 4, 5]", stdout
+        )  # Sorted with duplicates removed
+        self.assertIn("_결과2 = [1, 2, 3]", stdout)  # Already sorted list
+        self.assertIn("_결과3 = [1, 2, 3]", stdout)  # Reverse order sorted
+        self.assertIn("_결과4 = []", stdout)  # Empty list result
+        self.assertIn("_결과5 = [1]", stdout)  # Single element result
+        self.assertIn(
+            "_결과6 = [a, b, c]", stdout
+        )  # Atoms sorted with duplicates removed
+
+    def test_keysort(self):
+        commands = [
+            "키정렬([3-a, 1-b, 2-c], _결과).",  # Testing keysort with key-value pairs
+            "키정렬([1-x, 1-y, 2-z], _결과2).",  # Testing keysort with duplicate keys
+            "키정렬([c-3, a-1, b-2], _결과3).",  # Testing keysort with atom keys
+            "키정렬([], _결과4).",  # Testing keysort with empty list
+            "키정렬([1-only], _결과5).",  # Testing keysort with single pair
+            "키정렬([2-b, 1-a, 3-c], [1-a, 2-b, 3-c]).",  # Testing keysort with expected result (should succeed)
+            "키정렬([2-b, 1-a, 3-c], [1-a, 3-c, 2-b]).",  # Testing keysort with wrong order (should fail)
+            "키정렬([3-x, 1-y, 1-z, 2-w], _결과6).",  # Testing keysort preserving duplicate keys
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn(
+            "참", stdout
+        )  # Should have multiple 참 for successful keysorting
+        self.assertIn(
+            "거짓", stdout
+        )  # Should have 거짓 for wrong expected order
+        self.assertIn("_결과 = [1-b, 2-c, 3-a]", stdout)  # Sorted by keys
+        self.assertIn(
+            "_결과2 = [1-x, 1-y, 2-z]", stdout
+        )  # Duplicate keys preserved in order
+        self.assertIn("_결과3 = [a-1, b-2, c-3]", stdout)  # Atom keys sorted
+        self.assertIn("_결과4 = []", stdout)  # Empty list result
+        self.assertIn("_결과5 = [1-only]", stdout)  # Single pair result
+        self.assertIn(
+            "_결과6 = [1-y, 1-z, 2-w, 3-x]", stdout
+        )  # Duplicate keys in stable order
+
     # def test_n_queens(self):
 
 

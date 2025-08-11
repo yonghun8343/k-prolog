@@ -294,40 +294,183 @@ def handle_member(
     if len(goal.params) != 2 or goal.arity != 2:
         raise ErrUnknownPredicate("원소", len(goal.params))
 
-    l1, l2 = goal.params
-    l1 = substitute_term(unif, l1)
-    l2 = substitute_term(unif, l2)
+    element, list_term = goal.params
+    element = substitute_term(unif, element)
+    list_term = substitute_term(unif, list_term)
 
-    if isinstance(l2, Variable):
-        raise ErrInfiniteGeneration(
-            goal
-        )  # or could use generate_list and have a limit on n
-    if isinstance(l1, Variable):
-        extracted = extract_list(l2)
-        if extracted is not None:
-            extracted_structs = []
-            print(f"extracted is {extracted}")
-            for m in extracted:
-                print(f"appending {Struct(m, 0, []).__repr__()}")
-                extracted_structs.append(Struct(m, 0, [])) #TODO here
-            success, new_unif = match_params([l1], extracted_structs, unif)
-            return success, rest_goals, [new_unif] if success else [unif]
+    if isinstance(list_term, Variable):
+        raise ErrInfiniteGeneration(goal)
+
+    all_elements = []
+    current = list_term
+    
+    while True:
+        if is_empty_list(current):
+            break
+        elif is_list_cons(current):
+            head, tail = get_head_tail(current)
+            all_elements.append(head)
+            current = tail
         else:
-            print("here")
-            return False, rest_goals, [unif]
+            all_elements.append(current)
+            break
+
+    if isinstance(element, Variable):
+        all_solutions = []
+        for elem in all_elements:
+            success, new_unif = match_params([element], [elem], unif)
+            if success:
+                all_solutions.append(new_unif)
+        return len(all_solutions) > 0, rest_goals, all_solutions
     else:
-        extracted = extract_list(l2)
-        if extracted is not None:
-            if l1 in extracted:
+        for elem in all_elements:
+            success, _ = match_params([element], [elem], {})
+            if success:
                 return True, rest_goals, [unif]
-            else:
-                return False, rest_goals, [unif]
+        return False, rest_goals, []
+
+
+def handle_memberchk(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 2 or goal.arity != 2:
+        raise ErrUnknownPredicate("원소점검", len(goal.params))
+
+    element, list_term = goal.params
+    element = substitute_term(unif, element)
+    list_term = substitute_term(unif, list_term)
+
+    if isinstance(list_term, Variable):
+        raise ErrInfiniteGeneration(goal)
+
+    all_elements = []
+    current = list_term
+    
+    while True:
+        if is_empty_list(current):
+            break
+        elif is_list_cons(current):
+            head, tail = get_head_tail(current)
+            all_elements.append(head)
+            current = tail
         else:
-            return False, rest_goals, [unif]
-        # call extract list on l2
-        # if extract list returns none, then return false
-        # else check if l1 is in l2 (need to convert l1 into python compatible?)
-        # match params then return
+            all_elements.append(current)
+            break
+
+    if isinstance(element, Variable):
+        for elem in all_elements:
+            success, new_unif = match_params([element], [elem], unif)
+            if success:
+                return True, rest_goals, [new_unif]
+        return False, rest_goals, []
+    else:
+        for elem in all_elements:
+            success, _ = match_params([element], [elem], {})
+            if success:
+                return True, rest_goals, [unif]
+        return False, rest_goals, []
+
+
+def handle_sort(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 2 or goal.arity != 2:
+        raise ErrUnknownPredicate("정렬", len(goal.params))
+
+    input_list, output_list = goal.params
+    input_list = substitute_term(unif, input_list)
+    output_list = substitute_term(unif, output_list)
+
+    if isinstance(input_list, Variable):
+        return False, rest_goals, []
+
+    extracted = extract_list(input_list)
+    if extracted is None:
+        return False, rest_goals, []
+
+    try:
+        sortable_items = []
+        for item in extracted:
+            if isinstance(item, Struct) and item.arity == 0:
+                try:
+                    sortable_items.append((float(item.name), item))
+                except ValueError:
+                    sortable_items.append((item.name, item))
+            else:
+                sortable_items.append((str(item), item))
+
+        sorted_unique = []
+        seen = set()
+        for key, item in sorted(sortable_items, key=lambda x: x[0]):
+            item_str = str(item)
+            if item_str not in seen:
+                seen.add(item_str)
+                sorted_unique.append(item)
+
+        sorted_list = PrologList(sorted_unique).to_struct()
+        success, new_unif = match_params([output_list], [sorted_list], unif)
+        return success, rest_goals, [new_unif] if success else []
+
+    except Exception:
+        return False, rest_goals, []
+
+
+def handle_keysort(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 2 or goal.arity != 2:
+        raise ErrUnknownPredicate("keysort", len(goal.params))
+
+    input_list, output_list = goal.params
+    input_list = substitute_term(unif, input_list)
+    output_list = substitute_term(unif, output_list)
+
+    if isinstance(input_list, Variable):
+        return False, rest_goals, []
+
+    extracted = extract_list(input_list)
+    if extracted is None:
+        return False, rest_goals, []
+
+    try:
+        sortable_pairs = []
+        for item in extracted:
+            if (
+                isinstance(item, Struct)
+                and item.name == "-"
+                and item.arity == 2
+            ):
+                key, value = item.params
+                if isinstance(key, Struct) and key.arity == 0:
+                    try:
+                        # try numeric sorting first
+                        sortable_pairs.append((float(key.name), item))
+                    except ValueError:
+                        # fall back to lexicographic sorting
+                        sortable_pairs.append((key.name, item))
+                else:
+                    # for complex keys, sort by string representation
+                    sortable_pairs.append((str(key), item))
+            else:
+                # if not a key-value pair, treat the whole item as key
+                if isinstance(item, Struct) and item.arity == 0:
+                    try:
+                        sortable_pairs.append((float(item.name), item))
+                    except ValueError:
+                        sortable_pairs.append((item.name, item))
+                else:
+                    sortable_pairs.append((str(item), item))
+
+        sorted_items = [
+            item for key, item in sorted(sortable_pairs, key=lambda x: x[0])
+        ]
+
+        sorted_list = PrologList(sorted_items).to_struct()
+        success, new_unif = match_params([output_list], [sorted_list], unif)
+        return success, rest_goals, [new_unif] if success else []
+
+    except Exception:
+        return False, rest_goals, []
 
 
 def generate_list(n: int) -> Term:

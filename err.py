@@ -26,8 +26,6 @@ class ErrProlog(Exception):
 
 
 class AssertException(Exception):
-    """Exception used to communicate assertion requests from solver to REPL"""
-
     def __init__(self, clause_term, assert_type: str = "assertz"):
         from PARSER.ast import Term
 
