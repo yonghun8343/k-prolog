@@ -8,26 +8,29 @@ from err import (
     ErrNotNumber,
     ErrParsing,
     ErrProlog,
+    ErrType,
     ErrUninstantiated,
     ErrUnknownOperator,
     ErrUnknownPredicate,
-    ErrType,
     handle_error,
 )
 from PARSER.ast import Struct, Term, Variable
 from PARSER.Data.list import (
+    handle_atom_chars,
+    handle_between,
+    handle_flatten,
+    handle_is_list,
+    handle_keysort,
     handle_list_append,
     handle_list_length,
     handle_list_permutation,
-    handle_is_list,
-    handle_reverse,
-    handle_subtract,
     handle_member,
     handle_memberchk,
+    handle_ord_subset,
+    handle_reverse,
+    handle_select,
     handle_sort,
-    handle_keysort,
-    handle_flatten,
-    handle_atom_chars,
+    handle_subtract,
 )
 from PARSER.parser import parse_struct
 from UTIL.str_util import struct_to_infix
@@ -640,6 +643,12 @@ BUILTINS = {
     "문자리스트": handle_atom_chars,
     "flatten": handle_flatten,
     "평평히": handle_flatten,
+    "between": handle_between,
+    "이내": handle_between,
+    "ord_subset": handle_ord_subset,
+    "서열부분집합": handle_ord_subset,
+    "select": handle_select,
+    "선택": handle_select,
 }
 
 

@@ -489,10 +489,36 @@ def parse_struct(s: str) -> Term:
             try:
                 result = parse_arithmetic_expression(s)
                 return result
-            except ErrProlog as e:
+            except (ErrProlog, Exception) as e:
+                for op in ['-', '+', '*', '/']:
+                    if op in s:
+                        paren_depth = 0
+                        op_pos = -1
+                        for i, char in enumerate(s):
+                            if char == '(':
+                                paren_depth += 1
+                            elif char == ')':
+                                paren_depth -= 1
+                            elif char == op and paren_depth == 0:
+                                op_pos = i
+                                break
+                        
+                        if op_pos > 0:
+                            left_part = s[:op_pos].strip()
+                            right_part = s[op_pos + 1:].strip()
+                            
+                            try:
+                                left_term = parse_term(left_part) if left_part else None
+                                right_term = parse_term(right_part) if right_part else None
+                                
+                                if left_term and right_term:
+                                    result = Struct(op, 2, [left_term, right_term])
+                                    return result
+                            except Exception as e:
+                                continue
                 pass
 
-        elif s[0].isupper() or s[0] == "_":
+        if s[0].isupper() or s[0] == "_":
             return Variable(s)  # TODO need variable checking
         else:
             result = Struct(s, 0, [])

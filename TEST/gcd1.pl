@@ -1,17 +1,9 @@
-gcd(X, 0, X) :- X > 0.
-gcd(X, Y, G) :-
-    Y > 0,
-    (X < Y ->
-        gcd(Y, X, G)
-    ;
-        D is X - Y,
-        gcd(Y, D, G)).
+gray(1,['0','1']).
+gray(N,C) :- N > 1, N1 is N-1,
+   gray(N1,C1), reverse(C1,C2),
+   prepend('0',C1,C1P),
+   prepend('1',C2,C2P),
+   append(C1P,C2P,C).
 
-main :-
-    read(X),
-    read(Y),
-    gcd(X, Y, G),
-    writeln(G),
-    halt.
-
-:- initialization(main).
+prepend(_,[],[]) :- !.
+prepend(X,[C|Cs],[CP|CPs]) :- atom_concat(X,C,CP), prepend(X,Cs,CPs).

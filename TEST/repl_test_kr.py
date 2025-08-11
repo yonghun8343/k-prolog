@@ -645,6 +645,65 @@ class TestKProlog(unittest.TestCase):
 
         self.assertIn("참", stdout)
 
+    def test_maplist_comprehensive(self):
+        content = """
+            더하기일(_X, _Y) :- _Y := _X + 1.
+            곱하기이(_X, _Y) :- _Y := _X * 2.
+            같은가(_X, _X).
+            큰가(_X, _Y) :- _X > _Y.
+            제곱(_X, _Y) :- _Y := _X * _X.
+            양수인가(_X) :- _X > 0.
+            차이(_X, _Y, _Z) :- _Z := _X - _Y.
+            합(_X, _Y, _Z) :- _Z := _X + _Y.
+        """
+        
+        self.create_test_file("맵리스트테스트.pl", content)
+        
+        commands = [
+            "[맵리스트테스트].",
+            # Test 1: Basic transformation with unary predicate
+            "maplist(더하기일, [1, 2, 3], _결과1).",
+            # Test 2: Another transformation
+            "maplist(곱하기이, [2, 3, 4], _결과2).",
+            # Test 3: Verification mode - should succeed
+            "maplist(더하기일, [1, 2, 3], [2, 3, 4]).",
+            # Test 4: Verification mode - should fail
+            "maplist(더하기일, [1, 2, 3], [2, 3, 5]).",
+            # Test 5: Using = predicate (built-in unification)
+            "maplist(=, [a, b, c], [a, b, c]).",
+            # Test 6: Using = with variables
+            "maplist(=, [1, 2, 3], [_A, _B, _C]).",
+            # Test 7: Empty lists
+            "maplist(더하기일, [], []).",
+            # Test 8: Single element lists
+            "maplist(제곱, [5], [25]).",
+            # Test 9: Test with Korean predicate names and more complex transformation
+            "maplist(제곱, [1, 2, 3, 4], _제곱결과).",
+            # Test 10: Binary predicate with three lists
+            "maplist(차이, [5, 4, 3], [2, 1, 1], _차이결과).",
+            # Test 11: Test with unary predicate checking (should succeed for all)
+            "maplist(양수인가, [1, 2, 3, 4]).",
+            # Test 12: Test with unary predicate checking (should fail - zero is not positive)
+            "maplist(양수인가, [1, 0, 3]).",
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("맵리스트테스트.pl에서 적재했습니다", stdout)
+        # Test basic transformation results
+        self.assertIn("_결과1 = [2, 3, 4]", stdout)  # [1,2,3] + 1 = [2,3,4]
+        self.assertIn("_결과2 = [4, 6, 8]", stdout)  # [2,3,4] * 2 = [4,6,8]
+        # Test verification results
+        self.assertIn("참", stdout)  # Should have multiple 참 for successful verifications
+        self.assertIn("거짓", stdout)  # Should have 거짓 for failed verifications
+        # Test variable binding
+        self.assertIn("_A = 1", stdout)
+        self.assertIn("_B = 2", stdout) 
+        self.assertIn("_C = 3", stdout)
+        # Test transformation results
+        self.assertIn("_제곱결과 = [1, 4, 9, 16]", stdout)  # squares of [1,2,3,4]
+        self.assertIn("_차이결과 = [3, 3, 2]", stdout)  # [5,4,3] - [2,1,1] = [3,3,2]
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

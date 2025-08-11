@@ -229,7 +229,87 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("_결과6 = [1, 2, 3]", stdout)  # Empty sublists removed
         self.assertIn("_와이 = [_엑스]", stdout)  # Special case: both variables
 
-    
+    def test_between(self):
+        commands = [
+            "이내(1, 3, _엑스).",  # Testing between with variable - should generate 1, 2, 3
+            ";",
+            ";",
+            "이내(5, 8, _와이).",  # Testing between with different range
+            ";",
+            ";",
+            ";",
+            "이내(1, 5, 3).",  # Testing between verification (should succeed)
+            "이내(1, 5, 7).",  # Testing between verification (should fail - out of range)
+            "이내(2, 2, 2).",  # Testing between with same low and high (should succeed)
+            "이내(3, 1, 2).",  # Testing between with high < low (should fail)
+            "이내(0, 0, 0).",  # Testing between with zero values (should succeed)
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("참", stdout)  # Should have multiple 참 for successful between checks
+        self.assertIn("거짓", stdout)  # Should have 거짓 for out of range and invalid range
+        self.assertIn("_엑스 = 1", stdout)  # First solution for between(1, 3, X)
+        self.assertIn("_엑스 = 2", stdout)  # Second solution for between(1, 3, X)
+        self.assertIn("_엑스 = 3", stdout)  # Third solution for between(1, 3, X)
+        self.assertIn("_와이 = 5", stdout)  # First solution for between(5, 8, Y)
+        self.assertIn("_와이 = 6", stdout)  # Second solution for between(5, 8, Y)
+        self.assertIn("_와이 = 7", stdout)  # Third solution for between(5, 8, Y)
+        self.assertIn("_와이 = 8", stdout)  # Fourth solution for between(5, 8, Y)
+
+    def test_ord_subset(self):
+        commands = [
+            "서열부분집합([1, 3], [1, 2, 3, 4]).",  # Testing valid ordered subsequence (should succeed)
+            "서열부분집합([3, 1], [1, 2, 3, 4]).",  # Testing invalid subsequence - wrong order (should fail)
+            "서열부분집합([1, 2, 4], [1, 2, 3, 4]).",  # Testing valid ordered subsequence (should succeed)
+            "서열부분집합([2, 3, 5], [1, 2, 3, 4]).",  # Testing invalid subsequence - element not in set (should fail)
+            "서열부분집합([], [1, 2, 3]).",  # Testing empty subset (should succeed)
+            "서열부분집합([1, 2, 3], []).",  # Testing non-empty subset of empty set (should fail)
+            "서열부분집합([], []).",  # Testing empty subset of empty set (should succeed)
+            "서열부분집합([a, c], [a, b, c, d]).",  # Testing with atoms (should succeed)
+            "서열부분집합([c, a], [a, b, c, d]).",  # Testing with atoms - wrong order (should fail)
+            "서열부분집합([1, 2, 3], [1, 2, 3]).",  # Testing identical lists (should succeed)
+            "서열부분집합(_부분집합, [1, 2, 3]).",  # Testing with variable subset (generates empty list)
+            "서열부분집합([1, 2], _집합).",  # Testing with variable set (unifies set with subset)
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("참", stdout)  # Should have multiple 참 for successful checks
+        self.assertIn("거짓", stdout)  # Should have 거짓 for failed checks
+        self.assertIn("_부분집합 = []", stdout)  # Variable subset generates empty list
+        self.assertIn("_집합 = [1, 2|", stdout)  # Variable set unifies with subset with tail
+
+    def test_select(self):
+        commands = [
+            "선택(10, [1, 2, 3], _나머지).",  # Testing element not in list (should fail)
+            "선택(2, [1, 2, 3], _나머지1).",  # Testing element in list - single occurrence
+            "선택(2, [1, 2, 3, 2, 4], _나머지2).",  # Testing element with multiple occurrences - first solution
+            ";",  # Get second solution for multiple occurrences
+            "선택(2, [1, 2, 3, 2, 4, 2], _나머지3).",  # Testing element with three occurrences - first solution
+            ";",
+            ";",
+            "선택(a, [a], _나머지4).",  # Testing single element list
+            "선택(b, [a], _나머지5).",  # Testing element not in single element list (should fail)
+            "선택(1, [1, 1, 1], _나머지6).",  # Testing all same elements - first solution
+            ";",
+            ";",
+            "선택(x, [x, y, z], [y, z]).",  # Testing verification mode (should succeed)
+            "선택(x, [x, y, z], [x, y]).",  # Testing verification mode - wrong result (should fail)
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("참", stdout)  # Should have multiple 참 for successful selections
+        self.assertIn("거짓", stdout)  # Should have 거짓 for failed selections
+        self.assertIn("_나머지1 = [1, 3]", stdout)  # Single occurrence removal
+        self.assertIn("_나머지2 = [1, 3, 2, 4]", stdout)  # First occurrence removal
+        self.assertIn("_나머지2 = [1, 2, 3, 4]", stdout)  # Second occurrence removal  
+        self.assertIn("_나머지3 = [1, 3, 2, 4, 2]", stdout)  # First of three occurrences
+        self.assertIn("_나머지3 = [1, 2, 3, 4, 2]", stdout)  # Second of three occurrences
+        self.assertIn("_나머지3 = [1, 2, 3, 2, 4]", stdout)  # Third of three occurrences
+        self.assertIn("_나머지4 = []", stdout)  # Single element removal leaves empty list
+        self.assertIn("_나머지6 = [1, 1]", stdout)  # Remove first of three identical elements
 
 
 if __name__ == "__main__":

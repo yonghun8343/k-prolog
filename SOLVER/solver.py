@@ -248,15 +248,26 @@ def handle_forall(goal, rest_goals, unif, program, debug_state):
 def handle_maplist(goal, rest_goals, unif, program, debug_state):
     if len(goal.params) < 2:
         raise ErrUnknownPredicate("maplist", len(goal.params))
+
     pred = goal.params[0]
     lists = goal.params[1:]
     lists = [substitute_term(unif, lst) for lst in lists]
 
-    if isinstance(lists[0], list):
-        lists = lists[0]
+    empty_count = 0
+    for lst in lists:
+        if is_empty_list(lst):
+            empty_count += 1
+        elif isinstance(lst, Variable):
+            empty_list = Struct("[]", 0, [])
+            success, new_unif = match_params([lst], [empty_list], unif)
+            if success:
+                unif = new_unif
+                empty_count += 1
 
-    if all(is_empty_list(lst) for lst in lists):
+    if empty_count == len(lists):
         return True, rest_goals, [unif]
+
+    lists = [substitute_term(unif, lst) for lst in lists]
 
     if any(is_empty_list(lst) for lst in lists) and not all(
         is_empty_list(lst) for lst in lists
@@ -266,12 +277,23 @@ def handle_maplist(goal, rest_goals, unif, program, debug_state):
     try:
         heads = []
         tails = []
-        for lst in lists:
-            if not isinstance(lst, Struct) or lst.name != ".":
-                return False, rest_goals, []
-            heads.append(lst.params[0])
-            tails.append(lst.params[1])
-    except ErrList:
+        for i, lst in enumerate(lists):
+            if isinstance(lst, Variable):
+                head_var = Variable(f"_H{id(lst)}{i}")
+                tail_var = Variable(f"_T{id(lst)}{i}")
+                list_cons = Struct(".", 2, [head_var, tail_var])
+                success, new_unif = match_params([lst], [list_cons], unif)
+                if not success:
+                    return False, [], []
+                unif = new_unif
+                heads.append(head_var)
+                tails.append(tail_var)
+            elif isinstance(lst, Struct) and lst.name == "." and lst.arity == 2:
+                heads.append(lst.params[0])
+                tails.append(lst.params[1])
+            else:
+                return False, [], []
+    except (IndexError, AttributeError):
         return False, [], []
 
     if isinstance(pred, Struct):
@@ -282,12 +304,13 @@ def handle_maplist(goal, rest_goals, unif, program, debug_state):
     success, new_unifs = solve_with_choice_points(
         program, [pred_call], unif, debug_state, []
     )
+
     if not success or not new_unifs:
         return False, [], []
 
     new_unif = new_unifs[0]
-
     recursive_goal = Struct("maplist", len(lists) + 1, [pred] + tails)
+
     return handle_maplist(
         recursive_goal, rest_goals, new_unif, program, debug_state
     )
@@ -545,7 +568,6 @@ def solve_with_choice_points(
             continue
 
         x, *rest = goals
-
         if debug_state.trace_mode:
             show_call_trace(x, debug_state.call_depth)
             handle_trace_input(debug_state)
