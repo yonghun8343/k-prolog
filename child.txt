@@ -1,3 +1,0 @@
-interesting(prolog). %random comment
-interesting(c).
-interesting(python).

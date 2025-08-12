@@ -3,6 +3,41 @@ from typing import List
 from PARSER.ast import Struct, Term, Variable
 
 
+def flatten_comma_structure(term: Term) -> List[Term]:
+    if isinstance(term, Struct) and term.name == "," and term.arity == 2:
+        left_goals = flatten_comma_structure(term.params[0])
+        right_goals = flatten_comma_structure(term.params[1])
+        return left_goals + right_goals
+    else:
+        return [term]
+
+def term_to_string(term: Term) -> str:
+    if isinstance(term, Variable):
+        return term.name
+    elif isinstance(term, Struct):
+        if term.arity == 0:
+            return term.name
+        elif term.name == ":-" and term.arity == 2:
+            # Rule: head :- body
+            head = term_to_string(term.params[0])
+            body = term_to_string(term.params[1])
+            return f"{head} :- {body}"
+        elif term.name == "," and term.arity == 2:
+            # Don't start with comma - just join the parts
+            left = term_to_string(term.params[0])
+            right = term_to_string(term.params[1])
+            return f"{left}, {right}"  # No leading comma!
+        elif term.name == ";" and term.arity == 2:
+            left = term_to_string(term.params[0])
+            right = term_to_string(term.params[1])
+            return f"{left}; {right}"
+        else:
+            params_str = ", ".join(term_to_string(p) for p in term.params)
+            return f"{term.name}({params_str})"
+    else:
+        return str(term)
+
+
 def format_term(term: Term) -> str:
     if isinstance(term, Struct):
         if isinstance(term, Struct) and (term.name == "[]" or term.name == "."):
@@ -11,8 +46,17 @@ def format_term(term: Term) -> str:
             if term.arity == 0:
                 return term.name
             else:
-                params = ", ".join(format_term(p) for p in term.params)
-                return f"{term.name}({params})"
+                binary_operators = [
+                    "+", "-", "*", "/", "//", "mod", "=:=", "=\\=", 
+                    "<", ">", ">=", "=<", "=", "is", ":="
+                ]
+                if term.name in binary_operators and term.arity == 2:
+                    left = format_term(term.params[0])
+                    right = format_term(term.params[1])
+                    return f"{left}{term.name}{right}"
+                else:
+                    params = ", ".join(format_term(p) for p in term.params)
+                    return f"{term.name}({params})"
     elif isinstance(term, Variable):
         return term.name
     else:
@@ -60,6 +104,7 @@ def struct_to_infix(term: Term) -> str:
         "=<",
         "=",
         "is",
+        ":=",
     ]
 
     if term.arity > 0:

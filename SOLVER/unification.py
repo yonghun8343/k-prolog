@@ -1,22 +1,53 @@
 from typing import Dict, List, Tuple
 
+from UTIL.err import ErrUnification
 from PARSER.ast import Struct, Term, Variable
 
 
 def extract_variable(vars: List[str], unif: Dict[str, Term]) -> Dict[str, Term]:
-    return {v: unif[v] for v in vars if v in unif and not v.startswith("_G")}
+    result = {}
+    for v in vars:
+        if v in unif and not v.startswith("_G"):
+            # fully substitute the value to resolve any remaining temporary variables
+            result[v] = substitute_term(unif, unif[v])
+    return result
 
 
-def substitute_term(unification: Dict[str, Term], term: Term) -> Term:
+def substitute_term(
+    unification: Dict[str, Term],
+    term: Term,
+    visited: set = None,
+    depth: int = 0,
+) -> Term:
+    # prevent infinite recursion
+    if depth > 100:
+        return term
+
+    if visited is None:
+        visited = set()
+
     if isinstance(term, Variable):
-        return unification.get(term.name, term)
+        if term.name in visited:
+            return term  # return original variable to break cycle
+
+        if term.name in unification:
+            visited.add(term.name)
+            result = substitute_term(
+                unification, unification[term.name], visited, depth + 1
+            )
+            visited.remove(term.name)
+            return result
+        else:
+            return term
     elif isinstance(term, Struct):
-        return Struct(
-            term.name,
-            term.arity,
-            [substitute_term(unification, p) for p in term.params],
-        )
-    return term
+        new_params = [
+            substitute_term(unification, p, visited, depth + 1)
+            for p in term.params
+        ]
+        result = Struct(term.name, term.arity, new_params)
+        return result
+    else:
+        return term
 
 
 def substitute(unification: Dict[str, Term], terms: List[Term]) -> List[Term]:
@@ -32,9 +63,12 @@ def substitute_unification(
 def match_structs(
     a: Struct, b: Struct, old_unif: Dict[str, Term]
 ) -> Tuple[bool, Dict[str, Term]]:
-    if a.name == b.name and a.arity == b.arity:
-        success, result_unif = match_params(a.params, b.params, old_unif)
-        return success, result_unif
+    try:
+        if a.name == b.name and a.arity == b.arity:
+            success, result_unif = match_params(a.params, b.params, old_unif)
+            return success, result_unif
+    except Exception as e:
+        raise ErrUnification(a, b, "match_structs") from e
     return False, {}
 
 

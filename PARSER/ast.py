@@ -40,3 +40,10 @@ class Struct(Term):
 
     def __hash__(self):
         return hash((self.name, self.arity, tuple(self.params)))
+
+    def __lt__(self, other):
+        return (self.name, len(self.params), self.params) < (
+            other.name,
+            len(other.params),
+            other.params,
+        )

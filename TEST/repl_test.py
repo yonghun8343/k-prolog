@@ -6,7 +6,19 @@ import subprocess
 import tempfile
 import unittest
 
-from err import *
+from UTIL.err import (
+    ErrDivisionByZero,
+    ErrFileNotFound,
+    ErrInvalidCommand,
+    ErrNotNumber,
+    ErrOperator,
+    ErrParenthesis,
+    ErrParsing,
+    ErrPeriod,
+    ErrUnexpected,
+    ErrUninstantiated,
+    ErrUnknownPredicate,
+)
 
 
 class TestKProlog(unittest.TestCase):
@@ -274,7 +286,7 @@ class TestKProlog(unittest.TestCase):
             "integer(4.5)integer(3.0).",
             "language(X) :- interesting(X) :- lecture(X).",
             "language(X) :- interesting(X) lecture(X).",
-            "write(\"hello)."
+            'write("hello).',
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
@@ -290,7 +302,7 @@ class TestKProlog(unittest.TestCase):
             "X is Y / 2.",
             "X is 3 + 4 * ().",
             "X is 3 / 0.",
-            "X is 3 + a."
+            "X is 3 + a.",
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
@@ -301,15 +313,86 @@ class TestKProlog(unittest.TestCase):
         self.assertRaises(ErrNotNumber)
 
     def test_errrepl(self):
-        commands = ["listing(child.pl.",
-        "[random].",
-        "write(hello, 2)."]
+        commands = ["listing(child.pl.", "[random].", "write(hello, 2)."]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
         self.assertRaises(ErrInvalidCommand)
         self.assertRaises(ErrFileNotFound)
         self.assertRaises(ErrUnknownPredicate)
+
+    def test_findall_basic(self):
+        commands = [
+            "findall(X, X is 5, L).",  # Single solution
+            "findall(Y, Y is 2 + 3, M).",  # Arithmetic expression
+            "findall(A, A is 10 * 2, Q).",  # Multiplication
+            "findall(B, length([1,2,3], B), R).",  # Using built-in predicate
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("L = [5]", stdout)
+        self.assertIn("M = [5]", stdout)
+        self.assertIn("Q = [20]", stdout)
+        self.assertIn("R = [3]", stdout)
+
+    def test_findall_compound_goals(self):
+        commands = [
+            "findall(X, (X is 3, X > 2), L).",  # Compound goal with comma
+            "findall(Y, (Y is 5, Y =< 10), M).",  # Multiple conditions
+            "findall(Z, (Z is 2 * 3, Z < 10), N).",  # Arithmetic with comparison
+            "findall(W, (W is 1 + 1, W =:= 2), P).",  # Arithmetic equality
+            "findall(B, (B is 4, B 나머지 2 =:= 0), R).",  # Even number check
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("L = [3]", stdout)
+        self.assertIn("M = [5]", stdout)
+        self.assertIn("N = [6]", stdout)
+        self.assertIn("P = [2]", stdout)
+        self.assertIn("R = [4]", stdout)
+
+    def test_initialization_directive(self):
+        content = """:- initialization(start_system).
+                    start_system :- write('System initialized'), nl.
+                    main_goal."""
+        self.create_test_file("init.pl", content)
+        commands = [
+            "[init].",
+            "main_goal.",  # Some other goal to test normal execution
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("System initialized", stdout)
+        self.assertIn("True", stdout)
+
+    def test_initialization_compound_goal(self):
+        content = (
+            """:- initialization((write('Start'), nl, write('End'), nl))."""
+        )
+        self.create_test_file("init.pl", content)
+
+        commands = [
+            "[init].",
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("Start", stdout)
+        self.assertIn("End", stdout)
+
+    def test_initialization_with_arithmetic(self):
+        content = """:- initialization((X is 2 + 3, write(X)))."""
+        self.create_test_file("init.pl", content)
+        commands = [
+            "[init].",
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        self.assertIn("5", stdout)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,3 @@
+sum([], 0).
+sum([H|T], X) :- 
+    sum(T, Y), X is H + Y.
