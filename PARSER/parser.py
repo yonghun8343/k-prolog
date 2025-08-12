@@ -2,7 +2,7 @@
 import re
 from typing import Dict, List, Tuple
 
-from err import (
+from UTIL.err import (
     ErrCommandFormat,
     ErrInvalidTerm,
     ErrParenthesis,

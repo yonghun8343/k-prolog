@@ -1,6 +1,6 @@
 from typing import Dict, List, Optional, Tuple, Union
 
-from err import (
+from UTIL.err import (
     ErrProlog,
     ErrUnknownPredicate,
     handle_error,

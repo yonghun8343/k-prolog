@@ -1,6 +1,6 @@
 from typing import Dict, List, Tuple
 
-from err import ErrUnification
+from UTIL.err import ErrUnification
 from PARSER.ast import Struct, Term, Variable
 
 

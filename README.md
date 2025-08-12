@@ -1,73 +1,68 @@
-# k-prolog
+# K-Prolog
 
-## Clone 이후 해야할 작업
 
-poetry를 우선 설치
+K-Prolog: 한글 Prolog 인터프리터입니다
 
-project clone 후
+## 실행 방법
+Python 3.10 이상을 설치한 후 다음 명령을 수행합니다.
+``` shell
+python main.py
+```
+
+## K-Prolog 코드 예제
+``` shell
+퀸들(_엔,_큐에스) :- 범위(1,_엔,_엔에스), 순열(_엔에스,_큐에스), 안전(_큐에스).
+
+안전([]).
+안전([_큐|_큐에스]) :- 안전(_큐에스), 논리부정(공격(_큐,_큐에스)).
+
+공격(_엑스,_엑스에스) :- 공격(_엑스,1,_엑스에스).
+공격(_엑스,_엔,[_와이|_]) :- _엑스 := _와이+_엔; _엑스 := _와이-_엔.
+공격(_엑스,_엔,[_|_와이에스]) :- _엔1 := _엔+1, 공격(_엑스,_엔1,_와이에스).
+
+범위(_엔,_엔,[_엔]).
+범위(_엠,_엔,[_엠|_엔에스]) :- _엠 < _엔, _엠1 := _엠+1, 범위(_엠1,_엔,_엔에스).
+
+메인 :-
+    쓰고줄바꿈("N-Queens 문제 해결기"),
+    쓰고줄바꿈("보드 크기를 입력하세요:"),
+    읽기(_크기),
+    모두찾기(_해답, 퀸들(_크기, _해답), _모든해답),
+    ( _모든해답 = [] ->
+        쓰고줄바꿈('해답이 없습니다.')
+    ;
+        해답출력(_모든해답, 1)
+    ).
+
+해답출력([], _).
+해답출력([_해답|_나머지], _번호) :- 
+    쓰기("해답 "), 쓰기(_번호), 쓰기(": "),
+    쓰고줄바꿈(_해답),
+    _다음번호 := _번호 + 1,
+    해답출력(_나머지, _다음번호).
+```
+
+## 테스트 입력
 
 ``` shell
-poetry env use python
-poetry install --no-root --with lint
-poetry config virtualenvs.in-project true
+?- [엔퀸].
+엔퀸.pl에서 적재했습니다
+?- 메인.
+N-Queens 문제 해결기
+보드 크기를 입력하세요:
+|: 4.
+해답 1: [2, 4, 1, 3]
+해답 2: [3, 1, 4, 2]
+
+?- 메인.
+N-Queens 문제 해결기
+보드 크기를 입력하세요:
+|: 6.
+해답 1: [2, 4, 6, 1, 3, 5]
+해답 2: [3, 6, 2, 5, 1, 4]
+해답 3: [4, 1, 5, 2, 6, 3]
+해답 4: [5, 3, 1, 6, 4, 2]
 ```
 
-## Gitflow 적용 방법
-
-### Branch 생성
-
-``` shell
-git branch [branch 이름(작업 이름))]
-ex) git branch add_poetry
-ex) git branch setting/add_poetry
-ex) git branch feature/is_operation
-```
-
-### Branch 생성 후 해당 Branch로 이동
-
-```bash
-git checkout [생성한 branch 이름]
-ex) git checkout add_poetry
-```
-
-### 작업 완료 후 Push
-
-```bash
-git add . 
-or 
-git add *
-
-git commit -m "[변경 내용]"
-ex) git commit -m "add poetry settings"
-
-git push origin [branch 이름]
-```
-
-### PR 생성하는 방법
-1. Github로 이동 [누르면 이동](https://github.com/yonghun8343/k-prolog#)
-2. `Compare & pull request` 버튼 클릭
-3. 제목/설명 작성
-
-    제목 예:  
-
-    ```text
-    feat: 한글 기반 Prolog 파서 추가
-    ```
-
-    설명 예:  
-
-    ```diff
-    - 한글 질의 입력 처리
-    - 기존 Term 구조 유지
-    - 테스트는 console에서 수동 확인
-    ```
-4. Reviewers, Assignees, Label 항목 지정
-5. `Create Pull Request` 클릭
-
-### merge(머지)가 완료된 후 로컬 정리
-
-```bash
-git checkout main
-git pull origin main
-git branch -d [브랜치 이름]  # 로컬 브랜치 삭제
-```
+## Authors
+- 이유민

@@ -1,7 +1,7 @@
 import itertools
 from typing import Dict, List, Tuple
 
-from err import (
+from UTIL.err import (
     ErrInfiniteGeneration,
     ErrList,
     ErrType,
