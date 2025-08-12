@@ -2,11 +2,11 @@ import itertools
 from typing import Dict, List, Tuple, Union
 
 from err import (
+    ErrInfiniteGeneration,
     ErrList,
+    ErrType,
     ErrUninstantiated,
     ErrUnknownPredicate,
-    ErrInfiniteGeneration,
-    ErrType,
 )
 from PARSER.ast import Struct, Term, Variable
 from SOLVER.unification import match_params, substitute_term
@@ -238,7 +238,7 @@ def handle_reverse(
             return success, rest_goals, [new_unif] if success else []
         else:
             return is_empty_list(list2), rest_goals, [unif]
-            
+
     if is_empty_list(list2):
         if isinstance(list1, Variable):
             empty_list = Struct("[]", 0, [])
@@ -256,8 +256,8 @@ def handle_reverse(
             success, new_unif = match_params([list2], [reversed_struct], unif)
             return success, rest_goals, [new_unif] if success else []
         return False, [], []
-        
-    # Case: list1 is variable, list2 is instantiated  
+
+    # Case: list1 is variable, list2 is instantiated
     if isinstance(list1, Variable) and not isinstance(list2, Variable):
         list2_extr = extract_list(list2)
         if list2_extr is not None:
@@ -350,19 +350,12 @@ def handle_member(
             all_elements.append(current)
             break
 
-    if isinstance(element, Variable):
-        all_solutions = []
-        for elem in all_elements:
-            success, new_unif = match_params([element], [elem], unif)
-            if success:
-                all_solutions.append(new_unif)
-        return len(all_solutions) > 0, rest_goals, all_solutions
-    else:
-        for elem in all_elements:
-            success, _ = match_params([element], [elem], {})
-            if success:
-                return True, rest_goals, [unif]
-        return False, rest_goals, []
+    all_solutions = []
+    for elem in all_elements:
+        success, new_unif = match_params([element], [elem], unif)
+        if success:
+            all_solutions.append(new_unif)
+    return len(all_solutions) > 0, rest_goals, all_solutions
 
 
 def handle_memberchk(
@@ -392,18 +385,12 @@ def handle_memberchk(
             all_elements.append(current)
             break
 
-    if isinstance(element, Variable):
-        for elem in all_elements:
-            success, new_unif = match_params([element], [elem], unif)
-            if success:
-                return True, rest_goals, [new_unif]
-        return False, rest_goals, []
-    else:
-        for elem in all_elements:
-            success, _ = match_params([element], [elem], {})
-            if success:
-                return True, rest_goals, [unif]
-        return False, rest_goals, []
+    all_solutions = []
+    for elem in all_elements:
+        success, new_unif = match_params([element], [elem], unif)
+        if success:
+            all_solutions.append(new_unif)
+    return len(all_solutions) > 0, rest_goals, all_solutions
 
 
 def handle_sort(
@@ -751,18 +738,26 @@ def handle_ord_subset(
         raise ErrUninstantiated(
             f"{subset.name}, {setParam.name}", "서열부분집합"
         )
-    
+
     if isinstance(subset, Variable):
         if not (is_list_cons(setParam) or is_empty_list(setParam)):
-            raise ErrUninstantiated(setParam.name if isinstance(setParam, Variable) else str(setParam), "서열부분집합")
+            raise ErrUninstantiated(
+                setParam.name
+                if isinstance(setParam, Variable)
+                else str(setParam),
+                "서열부분집합",
+            )
         empty_struct = Struct("[]", 0, [])
         success, new_unif = match_params([subset], [empty_struct], unif)
         return success, rest_goals, [new_unif] if success else []
 
     elif isinstance(setParam, Variable):
         if not (is_list_cons(subset) or is_empty_list(subset)):
-            raise ErrUninstantiated(subset.name if isinstance(subset, Variable) else str(subset), "서열부분집합")
-        
+            raise ErrUninstantiated(
+                subset.name if isinstance(subset, Variable) else str(subset),
+                "서열부분집합",
+            )
+
         # ord_subset([1,2,3], X) - should return X = [1,2,3|_]
         if is_empty_list(subset):
             # empty subset can match any list
@@ -772,8 +767,8 @@ def handle_ord_subset(
             subset_elements = extract_list(subset)
             if subset_elements is None:
                 raise ErrUninstantiated(str(subset), "서열부분집합")
-            
-            tail_var = Variable("_") #FIXME is hard coded right now
+
+            tail_var = Variable("_")  # FIXME is hard coded right now
             result_list = PrologList(subset_elements, tail_var).to_struct()
             success, new_unif = match_params([setParam], [result_list], unif)
             return success, rest_goals, [new_unif] if success else []
@@ -855,8 +850,6 @@ def is_ordered_subsequence(subseq, seq):
                     return True
 
     return sub_idx == len(subseq)
-
-
 
 
 def generate_list(n: int) -> Term:

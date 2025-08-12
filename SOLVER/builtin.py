@@ -649,6 +649,8 @@ BUILTINS = {
     "서열부분집합": handle_ord_subset,
     "select": handle_select,
     "선택": handle_select,
+    "atom": handle_atomic,
+    "상수": handle_atomic,
 }
 
 

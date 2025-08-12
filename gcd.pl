@@ -1,39 +1,10 @@
-% Example
-% ?- huffman([fr(a,45),fr(b,13),fr(c,12),fr(d,16),fr(e,9),fr(f,5)],C).
-% C = [hc(a,'0'),hc(b,'101'),hc(c,'100'),hc(d,'111'),hc(e,'1101'),hc(f,'1100')]+
+더하기일(_X, _Y) :- _Y := _X + 1.
+곱하기이(_X, _Y) :- _Y := _X * 2.
+같은가(_X, _X).
+큰가(_X, _Y) :- _X > _Y.
+제곱(_X, _Y) :- _Y := _X * _X.
+양수인가(_X) :- _X > 0.
+차이(_X, _Y, _Z) :- _Z := _X - _Y.
+합(_X, _Y, _Z) :- _Z := _X + _Y.
 
-% During the construction process, we need nodes n(F,S) where, at the 
-% beginning, F is a frequency and S a symbol. During the process, as n(F,S)
-% becomes an internal node, S becomes a term s(L,R) with L and R being 
-% again n(F,S) terms. A list of n(F,S) terms, called Ns, is maintained 
-% as a sort of priority queue.
-
-huffman(Fs,Cs) :-
-   initialize(Fs,Ns),write(Ns),
-   make_tree(Ns,T),write("writing tree"), write(T),
-   traverse_tree(T,Cs).
-
-initialize(Fs,Ns) :- init(Fs,NsU), sort(NsU,Ns).
-
-init([],[]).
-init([fr(S,F)|Fs],[n(F,S)|Ns]) :- init(Fs,Ns).
-
-make_tree([T],T).
-make_tree([n(F1,X1),n(F2,X2)|Ns],T) :- 
-   F is F1+F2,
-   insert(n(F,s(n(F1,X1),n(F2,X2))),Ns,NsR),
-   make_tree(NsR,T).
-
-insert(N,[],[N]) :- !.
-insert(n(F,X),[n(F0,Y)|Ns],[n(F,X),n(F0,Y)|Ns]) :- F < F0, !.
-insert(n(F,X),[n(F0,Y)|Ns],[n(F0,Y)|Ns1]) :- F >= F0, insert(n(F,X),Ns,Ns1).
-
-
-traverse_tree(T,Cs) :- write("meep"), traverse_tree(T,'',Cs1-[]), sort(Cs1,Cs).
-
-traverse_tree(n(_,A),Code,[hc(A,Code)|Cs]-Cs) :- atom(A).
-traverse_tree(n(_,s(Left,Right)),Code,Cs1-Cs3) :-
-   atom_concat(Code,'0',CodeLeft), 
-   atom_concat(Code,'1',CodeRight),
-   traverse_tree(Left,CodeLeft,Cs1-Cs2),
-   traverse_tree(Right,CodeRight,Cs2-Cs3).
+add_one(X, Y) :- Y is X + 1.

@@ -1,9 +1,6 @@
-from typing import Dict, List, Tuple, Optional, Union
-import copy
+from typing import Dict, List, Optional, Tuple, Union
 
 from err import (
-    ErrInvalidCommand,
-    ErrList,
     ErrProlog,
     ErrUnknownPredicate,
     handle_error,
@@ -257,15 +254,23 @@ def handle_maplist(goal, rest_goals, unif, program, debug_state):
     for lst in lists:
         if is_empty_list(lst):
             empty_count += 1
-        elif isinstance(lst, Variable):
-            empty_list = Struct("[]", 0, [])
-            success, new_unif = match_params([lst], [empty_list], unif)
-            if success:
-                unif = new_unif
-                empty_count += 1
 
     if empty_count == len(lists):
         return True, rest_goals, [unif]
+    
+    # if any list is empty but not all, try to unify variables with empty lists
+    if empty_count > 0 and empty_count < len(lists):
+        for i, lst in enumerate(lists):
+            if isinstance(lst, Variable):
+                empty_list = Struct("[]", 0, [])
+                success, new_unif = match_params([lst], [empty_list], unif)
+                if success:
+                    unif = new_unif
+                    empty_count += 1
+                    lists[i] = empty_list
+        
+        if empty_count == len(lists):
+            return True, rest_goals, [unif]
 
     lists = [substitute_term(unif, lst) for lst in lists]
 
@@ -349,6 +354,104 @@ def handle_arrow(
     except ErrProlog as e:
         handle_error(e, "-> predicate")
         return False, rest_goals, []
+
+
+def handle_recorda(
+    goal: Struct,
+    rest_goals: List[Term],
+    unif: Dict[str, Term],
+    program: List[List[Term]],
+    debug_state: DebugState,
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 3:
+        raise ErrUnknownPredicate("recorda", len(goal.params))
+
+    key = substitute_term(unif, goal.params[0])
+    term = substitute_term(unif, goal.params[1])
+    ref_var = goal.params[2]
+
+    debug_state.recorded_counter += 1
+    ref_id = debug_state.recorded_counter
+    ref_struct = Struct("$ref", 1, [Struct(str(ref_id), 0, [])])
+
+    k = str(key)
+    if k not in debug_state.recorded_db:
+        debug_state.recorded_db[k] = []
+    debug_state.recorded_db[k].insert(0, (ref_id, term))
+
+    ok, new_unif = match_params([ref_var], [ref_struct], unif)
+    if ok:
+        return True, rest_goals, [new_unif]
+    else:
+        return False, [], []
+
+
+def handle_recorded(
+    goal: Struct,
+    rest_goals: List[Term],
+    unif: Dict[str, Term],
+    program: List[List[Term]],
+    debug_state: DebugState,
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 3:
+        raise ErrUnknownPredicate("recorded", len(goal.params))
+
+    key = substitute_term(unif, goal.params[0])
+    term_pat = goal.params[1]
+    ref_pat = goal.params[2]
+
+    k = str(key)
+    if k not in debug_state.recorded_db or not debug_state.recorded_db[k]:
+        return False, [], []
+
+    matches = []
+    for ref_id, stored_term in debug_state.recorded_db[k]:
+        ref_struct = Struct("$ref", 1, [Struct(str(ref_id), 0, [])])
+        ok1, unif1 = match_params([term_pat], [stored_term], unif)
+        if ok1:
+            ok2, unif2 = match_params([ref_pat], [ref_struct], unif1)
+            if ok2:
+                matches.append(unif2)
+
+    if not matches:
+        return False, [], []
+    return True, rest_goals, matches
+
+
+def handle_erase(
+    goal: Struct,
+    rest_goals: List[Term],
+    unif: Dict[str, Term],
+    program: List[List[Term]],
+    debug_state: DebugState,
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 1:
+        raise ErrUnknownPredicate("erase", len(goal.params))
+
+    ref_term = substitute_term(unif, goal.params[0])
+    if not (
+        isinstance(ref_term, Struct)
+        and ref_term.name == "$ref"
+        and ref_term.arity == 1
+    ):
+        return False, [], []
+
+    try:
+        ref_id = int(ref_term.params[0].name)
+    except (ValueError, AttributeError):
+        return False, [], []
+
+    for k in list(debug_state.recorded_db.keys()):
+        before = len(debug_state.recorded_db[k])
+        debug_state.recorded_db[k] = [
+            (rid, t) for (rid, t) in debug_state.recorded_db[k] if rid != ref_id
+        ]
+        if not debug_state.recorded_db[k]:
+            del debug_state.recorded_db[k]
+        if len(debug_state.recorded_db.get(k, [])) != before:
+            break
+
+    return True, rest_goals, [unif]
 
 
 # def solve_with_unification(
@@ -629,7 +732,20 @@ def solve_with_choice_points(
                     continue
 
             if isinstance(x, Struct) and (
-                x.name in {"findall", "setof", "forall", "maplist", "->"}
+                x.name
+                in {
+                    "findall",
+                    "setof",
+                    "forall",
+                    "maplist",
+                    "->",
+                    "recorda",
+                    "레코드기록",
+                    "recorded",
+                    "레코드",
+                    "erase",
+                    "지우기",
+                }
                 or has_builtin(x.name)
             ):
                 internal_handlers = {
@@ -638,6 +754,12 @@ def solve_with_choice_points(
                     "forall": handle_forall,
                     "maplist": handle_maplist,
                     "->": handle_arrow,
+                    "recorda": handle_recorda,
+                    "레코드기록": handle_recorda,
+                    "recorded": handle_recorded,
+                    "레코드": handle_recorded,
+                    "erase": handle_erase,
+                    "지우기": handle_erase,
                 }
 
                 if x.name in internal_handlers:

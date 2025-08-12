@@ -246,9 +246,9 @@ class TestKProlog(unittest.TestCase):
                 첫번째([_머리|_], _머리) :- !.
                 첫번째([_|_꼬리], _엑스) :- 첫번째(_꼬리, _엑스).
 
-                선택(가) :- !.
-                선택(나).
-                선택(다).
+                선택1(가) :- !.
+                선택1(나).
+                선택1(다).
 
                 테스트_컷(1) :- !, fail.
                 테스트_컷(2).
@@ -262,7 +262,6 @@ class TestKProlog(unittest.TestCase):
         commands1 = [
             "[컷_테스트].",
             "최대값(5, 3, _지).",
-            ";",  # Should succeed with Z = 5, no backtracking
         ]
         stdout1, stderr1, returncode1 = self.run_prolog_commands(commands1)
         self.assertIn("_지 = 5", stdout1)
@@ -274,7 +273,7 @@ class TestKProlog(unittest.TestCase):
 
         commands3 = [
             "[컷_테스트].",
-            "선택(_엑스).",
+            "선택1(_엑스).",
             ";",
             ";",
             ";",  # Should only give X = a due to cut
@@ -423,6 +422,39 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("_원자 = abc", stdout)  # Atom from chars ['a', 'b', 'c']
         self.assertIn("_원자2 = 123", stdout)  # Atom from chars ['1', '2', '3']
         self.assertIn("_원자3 = ''", stdout)  # Empty atom from empty list
+
+    def test_record_family(self):
+        content = """
+        test_recorda(T1, T2, R1, R2) :-
+            recorda(foo, hello(world), R1),
+            recorda(foo, goodbye(world), R2),
+            recorded(foo, T1, R1),
+            recorded(foo, T2, R2).
+
+        test_erase(R) :-
+            erase(R).
+
+        test_after_erase(T, R) :-
+            recorded(foo, T, R).
+        """
+        self.create_test_file("record_family.pl", content)
+
+        commands = [
+            "[record_family].",
+            "test_recorda(T1, T2, R1, R2).",
+            "test_erase(R1).",
+            "test_after_erase(T, R).",
+        ]
+
+        stdout, stderr, returncode = self.run_prolog_commands(commands)
+
+        # Check that recording succeeded and references returned
+        self.assertIn("T1 = hello(world)", stdout)
+        self.assertIn("T2 = goodbye(world)", stdout)
+        self.assertIn(
+            "R1 =", stdout
+        )  # some opaque reference struct, e.g. $ref(...)
+        self.assertIn("R2 =", stdout)
 
 
 if __name__ == "__main__":

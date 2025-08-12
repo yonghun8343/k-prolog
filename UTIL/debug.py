@@ -3,6 +3,8 @@ class DebugState:
         self.trace_mode = False
         self.call_depth = 0
         self.seq = 0
+        self.recorded_db = {}  # key:str -> list of (ref_id:int, term:Term)
+        self.recorded_counter = 0
 
 
 class DebugAbort(Exception):
