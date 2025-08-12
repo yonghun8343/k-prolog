@@ -27,57 +27,6 @@ from .unification import (
 )
 
 
-def has_delayed_constraints(goals: List[Term]) -> bool:
-    for goal in goals:
-        if (
-            isinstance(goal, Struct)
-            and hasattr(goal, "_delay_count")
-            and goal._delay_count > 0
-        ):
-            return True
-    return False
-
-
-def contains_arithmetic_constraints(goal: Term) -> bool:
-    if isinstance(goal, Struct):
-        if goal.name in {">", "<", ">=", "=<", "=:=", "=\\=", "mod", "is"}:
-            return True
-        # recursively check parameters
-        for param in goal.params:
-            if contains_arithmetic_constraints(param):
-                return True
-    return False
-
-
-def solve_goal_with_constraint_handling(
-    program: List[List[Term]],
-    goal: Term,
-    unif: Dict[str, Term],
-    debug_state: DebugState,
-    max_constraint_attempts: int = 3,
-) -> Tuple[bool, List[Dict[str, Term]], bool]:
-    # first attempt with normal solving
-    success, solutions = solve_with_choice_points(
-        program, [goal], unif, debug_state, []
-    )
-
-    if success:
-        return success, solutions, False
-
-    # check if the goal likely contains arithmetic constraints that might cause delays
-    if contains_arithmetic_constraints(goal):
-        # this goal might fail due to unresolved constraints rather than logical failure
-        # in a more sophisticated implementation, we'd track the exact cause of failure
-        return (
-            False,
-            [],
-            True,
-        )  # assume unresolved constraints for arithmetic goals
-
-    # for non-arithmetic goals, assume definitive failure
-    return False, [], False
-
-
 def get_variables(terms: List[Term]) -> List[str]:
     result = []
 
@@ -186,15 +135,21 @@ def handle_findall(
         return False, [], []
 
 
-def handle_setof(goal, rest_goals, unif, program, debug_state):
+def handle_setof(
+    goal: Struct,
+    rest_goals: List[Term],
+    unif: Dict[str, Term],
+    program: List[List[Term]],
+    debug_state: DebugState,
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     success, findall_goals, findall_unifs = handle_findall(
         goal, rest_goals, unif, program, debug_state
     )
 
     if success and findall_unifs:
-        result_list = findall_unifs[0][goal.params[2].name]  # The bag
+        result_list = findall_unifs[0][goal.params[2].name]  # the bag
         python_list = extract_list(result_list)
-        unique_sorted = sorted(set(python_list))  # Remove dups + sort
+        unique_sorted = sorted(set(python_list))  # remove dups + sort
 
         setof_result = PrologList(unique_sorted).to_struct()
 
@@ -206,7 +161,13 @@ def handle_setof(goal, rest_goals, unif, program, debug_state):
     return False, rest_goals, []
 
 
-def handle_forall(goal, rest_goals, unif, program, debug_state):
+def handle_forall(
+    goal: Struct,
+    rest_goals: List[Term],
+    unif: Dict[str, Term],
+    program: List[List[Term]],
+    debug_state: DebugState,
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 2:
         raise ErrUnknownPredicate("forall", len(goal.params))
 
@@ -242,7 +203,13 @@ def handle_forall(goal, rest_goals, unif, program, debug_state):
     return True, rest_goals, [unif]
 
 
-def handle_maplist(goal, rest_goals, unif, program, debug_state):
+def handle_maplist(
+    goal: Struct,
+    rest_goals: List[Term],
+    unif: Dict[str, Term],
+    program: List[List[Term]],
+    debug_state: DebugState,
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) < 2:
         raise ErrUnknownPredicate("maplist", len(goal.params))
 
@@ -257,7 +224,7 @@ def handle_maplist(goal, rest_goals, unif, program, debug_state):
 
     if empty_count == len(lists):
         return True, rest_goals, [unif]
-    
+
     # if any list is empty but not all, try to unify variables with empty lists
     if empty_count > 0 and empty_count < len(lists):
         for i, lst in enumerate(lists):
@@ -268,7 +235,7 @@ def handle_maplist(goal, rest_goals, unif, program, debug_state):
                     unif = new_unif
                     empty_count += 1
                     lists[i] = empty_list
-        
+
         if empty_count == len(lists):
             return True, rest_goals, [unif]
 
@@ -452,170 +419,6 @@ def handle_erase(
             break
 
     return True, rest_goals, [unif]
-
-
-# def solve_with_unification(
-#     program: List[List[Term]],
-#     goals: List[Term],
-#     old_unif: Dict[str, Term],
-#     debug_state: DebugState,
-# ) -> Tuple[bool, List[Dict[str, Term]]]:
-#     if not goals:
-#         return True, [old_unif]
-#     x, *rest = goals
-#     if debug_state.trace_mode:
-#         show_call_trace(x, debug_state.call_depth)
-#         handle_trace_input(debug_state)
-
-#     debug_state.call_depth += 1
-
-#     try:
-#         if isinstance(x, Struct) and x.name == "," and x.arity == 2:
-#             flattened_goals = flatten_comma_structure(x)
-#             return solve_with_unification(
-#                 program, flattened_goals + rest, old_unif, debug_state
-#             )
-#         if (
-#             isinstance(x, Struct)
-#             and ((x.name == "fail") or (x.name == "포기"))
-#             and x.arity == 0
-#         ):
-#             if debug_state.trace_mode:
-#                 show_call_trace(x, debug_state.call_depth - 1)
-#                 handle_trace_input(debug_state)
-#             return False, []
-
-#         if isinstance(x, Struct) and x.name == "!" and x.arity == 0:
-#             success, solutions = solve_with_unification(
-#                 program,
-#                 rest,
-#                 old_unif,
-#                 debug_state,
-#             )
-#             if success:
-#                 marked_solutions = []
-#                 for solution in solutions:
-#                     marked_solution = solution.copy()
-#                     marked_solution["__CUT_ENCOUNTERED__"] = True
-#                     marked_solutions.append(marked_solution)
-#                 return True, marked_solutions
-#             else:
-#                 cut_marker = old_unif.copy()
-#                 cut_marker["__CUT_ENCOUNTERED__"] = True
-#                 return False, [cut_marker]
-
-#         if isinstance(x, Struct) and (
-#             (x.name == "not") or (x.name == "논리부정")
-#         ):
-#             if not len(x.params) == 1:
-#                 raise ErrUnknownPredicate("논리부정", len(x.params))
-
-#             inner_goal = substitute_term(old_unif, x.params[0])
-#             success, solutions = solve_with_unification(
-#                 program,
-#                 [inner_goal],
-#                 old_unif,
-#                 debug_state,
-#             )
-#             if success:
-#                 return False, []
-#             else:
-#                 if debug_state.trace_mode:
-#                     show_exit_trace(x, debug_state.call_depth - 1)
-#                     handle_trace_input(debug_state)
-
-#                 return solve_with_unification(
-#                     program, rest, old_unif, debug_state
-#                 )
-
-#         if isinstance(x, Struct) and (
-#             x.name in {"findall", "setof", "forall", "maplist", "->"}
-#             or has_builtin(x.name)
-#         ):
-#             internal_handlers = {
-#                 "findall": handle_findall,
-#                 "setof": handle_setof,
-#                 "forall": handle_forall,
-#                 "maplist": handle_maplist,
-#                 "->": handle_arrow,
-#             }
-#             if x.name in internal_handlers:
-#                 success, new_goals, new_unifications = internal_handlers.get(
-#                     x.name
-#                 )(x, rest, old_unif, program, debug_state)
-#             else:
-#                 success, new_goals, new_unifications = handle_builtins(
-#                     x, rest, old_unif
-#                 )
-#             if success:
-#                 all_solutions = []
-#                 for unif in new_unifications:
-#                     success, solutions = solve_with_unification(
-#                         program,
-#                         new_goals,
-#                         unif,
-#                         debug_state,
-#                     )
-
-#                     if success:
-#                         all_solutions.extend(solutions)
-#                         if any(
-#                             "__CUT_ENCOUNTERED__" in solution
-#                             for solution in solutions
-#                         ):
-#                             clean_solutions = [
-#                                 {
-#                                     k: v
-#                                     for k, v in sol.items()
-#                                     if k != "__CUT_ENCOUNTERED__"
-#                                 }
-#                                 for sol in all_solutions
-#                             ]
-#                             return True, clean_solutions
-
-#                 if debug_state.trace_mode and all_solutions:
-#                     show_exit_trace(x, debug_state.call_depth - 1)
-#                     handle_trace_input(debug_state)
-
-#                 return bool(all_solutions), all_solutions
-
-#         clauses = [c for c in program if is_relevant(x, c)]
-#         all_solutions = []
-
-#         for clause in clauses:
-#             debug_state.seq += 1000
-#             renamed_clause = init_rules(clause, debug_state)
-#             # seq = new_seq
-#             is_match, new_goals, unif = match_predicate(
-#                 x, rest, old_unif, renamed_clause
-#             )
-
-#             if is_match:
-#                 success, solutions = solve_with_unification(
-#                     program,
-#                     new_goals,
-#                     unif,
-#                     debug_state,
-#                 )
-
-#                 if any(
-#                     "__CUT_ENCOUNTERED__" in solution for solution in solutions
-#                 ):
-#                     if success:
-#                         all_solutions.extend(solutions)
-
-#                     return success, solutions
-#                 if success:
-#                     all_solutions.extend(solutions)
-
-#         if debug_state.trace_mode and all_solutions:
-#             show_exit_trace(x, debug_state.call_depth - 1)
-#             handle_trace_input(debug_state)
-
-#         return bool(all_solutions), all_solutions
-
-#     finally:
-#         debug_state.call_depth -= 1
 
 
 class ChoicePoint:
@@ -919,16 +722,3 @@ def solve(
 ) -> Tuple[bool, List[Dict[str, Term]]]:
     result, unifs = solve_with_choice_points(program, goals, {}, debug_state)
     return result, [extract_variable(get_variables(goals), u) for u in unifs]
-
-
-# def solve(
-#     program: List[List[Term]], goals: List[Term], debug_state: DebugState
-# ) -> Tuple[bool, List[Dict[str, Term]]]:
-#     result, unifs = solve_with_unification(program, goals, {}, debug_state)
-#     clean_unifs = [
-#         {k: v for k, v in unif.items() if k != "__CUT_ENCOUNTERED__"}
-#         for unif in unifs
-#     ]
-#     return result, [
-#         extract_variable(get_variables(goals), u) for u in clean_unifs
-#     ]

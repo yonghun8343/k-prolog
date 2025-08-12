@@ -1,7 +1,6 @@
 from typing import List
 
 from PARSER.ast import Struct, Term, Variable
-# from PARSER.parser import parse_struct
 
 
 def flatten_comma_structure(term: Term) -> List[Term]:
@@ -12,10 +11,6 @@ def flatten_comma_structure(term: Term) -> List[Term]:
     else:
         return [term]
 
-
-# def string_to_infix(writeStr: str) -> str:
-#     struct_form = parse_struct(writeStr)
-#     return struct_to_infix(struct_form)
 def term_to_string(term: Term) -> str:
     if isinstance(term, Variable):
         return term.name

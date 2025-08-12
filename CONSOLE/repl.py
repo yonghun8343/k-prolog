@@ -1,4 +1,3 @@
-import sys
 from typing import List, Tuple
 
 from err import (
@@ -26,7 +25,7 @@ class Command:
 class Load(Command):
     def __init__(self, path: str):
         if "." not in path:
-            path += ".pl"  # TODO hardcoded right now
+            path += ".pl"
         self.path = path
 
 

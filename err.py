@@ -223,7 +223,7 @@ class ErrInfiniteGeneration(ErrProlog):
         self.clause = clause
 
     def __str__(self) -> str:
-        return f"K-Prolog doesn't support infinite solution generation, cannot excuse {self.clause}"
+        return f"K-Prolog는 무한 솔루션 생성을 지원하지 않으며 {self.clause}을(를) 실행할 수 없습니다."
 
 
 class ErrInvalidCommand(ErrREPL):

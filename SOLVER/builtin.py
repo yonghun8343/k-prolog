@@ -183,10 +183,10 @@ def handle_not_equals(
     if success:
         return False, rest_goals, []
     else:
-        return True, rest_goals, [unif]
+        return True, rest_goals, [new_unif]
 
 
-def handle_write(  # need to take care of string
+def handle_write(
     goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
 ) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
     if len(goal.params) != 1:
@@ -396,14 +396,14 @@ def handle_atom_concat(
             return Struct(f"'{value}'", 0, [])
 
     if isinstance(l3, Variable):
-        if isinstance(l1, Variable) or isinstance(l2, Variable):
-            raise ErrUninstantiated(
-                "atom_concat", "적어도 2개의 인수가 인스턴스화되어야 합니다"
-            )
-        if not (isinstance(l1, Struct) and l1.arity == 0) or not (
-            isinstance(l2, Struct) and l2.arity == 0
-        ):
-            raise ErrType("atom_concat는 원자가 필요합니다")
+        if isinstance(l1, Variable):
+            raise ErrUninstantiated(l1.name, "상수연결")
+        if isinstance(l2, Variable):
+            raise ErrUninstantiated(l2.name, "상수연결")
+        if not (isinstance(l1, Struct) and l1.arity == 0):
+            raise ErrType(l1.name, "원자")
+        if not (isinstance(l2, Struct) and l2.arity == 0):
+            raise ErrType(l2.name, "원자")
 
         # Extract the actual values (remove quotes if present)
         l1_val = (
@@ -423,7 +423,7 @@ def handle_atom_concat(
         return success, rest_goals, [new_unif] if success else []
     else:
         if not (isinstance(l3, Struct) and l3.arity == 0):
-            raise ErrType("atom_concat는 원자가 필요합니다")
+            raise ErrType(l3.name, "원자")
 
         # Extract the actual value from l3 (remove quotes if present)
         l3_val = (
@@ -452,7 +452,7 @@ def handle_atom_concat(
             return len(all_unifs) > 0, rest_goals, all_unifs
         elif isinstance(l1, Variable):
             if not (isinstance(l2, Struct) and l2.arity == 0):
-                raise ErrType("atom_concat는 원자가 필요합니다")
+                raise ErrType(l2.name, "원자")
 
             l2_val = (
                 l2.name.strip("'")
@@ -468,7 +468,7 @@ def handle_atom_concat(
                 return False, rest_goals, []
         elif isinstance(l2, Variable):
             if not (isinstance(l1, Struct) and l1.arity == 0):
-                raise ErrType("atom_concat는 원자가 필요합니다")
+                raise ErrType(l1.name, "원자")
 
             l1_val = (
                 l1.name.strip("'")
@@ -484,10 +484,10 @@ def handle_atom_concat(
                 return False, rest_goals, []
         else:
             # All three are atoms - check if l1 + l2 = l3
-            if not (isinstance(l1, Struct) and l1.arity == 0) or not (
-                isinstance(l2, Struct) and l2.arity == 0
-            ):
-                raise ErrType("atom_concat는 원자가 필요합니다")
+            if not (isinstance(l1, Struct) and l1.arity == 0):
+                raise ErrType(l1.name, "원자")
+            if not (isinstance(l2, Struct) and l2.arity == 0):
+                raise ErrType(l2.name, "원자")
 
             l1_val = (
                 l1.name.strip("'")

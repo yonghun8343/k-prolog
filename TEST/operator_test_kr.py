@@ -123,18 +123,6 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("_와이 = 17", stdout)
         self.assertIn("_지 = 9", stdout)
 
-    # def test_error_cases(self):
-    #     commands = [
-    #         "_엑스 := _와이 + 3.",  # Y uninstantiated - should error
-    #         "_엑스 := 5 / 0.",  # Division by zero - should error
-    #         "원자 =:= 5.",  # Type error - should error
-    #     ]
-
-    #     stdout, stderr, returncode = self.run_prolog_commands(commands)
-
-    #     # Should contain error messages
-    #     self.assertTrue("ERROR" in stderr or "Error" in stderr)
-
     def test_anonymous_variables(self):
         content = """
         테스트_익명(_엑스, _) :- _엑스 := 3.
@@ -209,7 +197,10 @@ class TestKProlog(unittest.TestCase):
             ";",
             ";",
             # "퀸들(6, _큐에스).",  # takes too long
-            # ";", ";", ";", ";"
+            # ";",
+            # ";",
+            # ";",
+            # ";",
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
@@ -425,25 +416,25 @@ class TestKProlog(unittest.TestCase):
 
     def test_record_family(self):
         content = """
-        test_recorda(T1, T2, R1, R2) :-
-            recorda(foo, hello(world), R1),
-            recorda(foo, goodbye(world), R2),
-            recorded(foo, T1, R1),
-            recorded(foo, T2, R2).
+        테스트_기록(T1, T2, R1, R2) :-
+            레코드기록(foo, hello(world), R1),
+            레코드기록(foo, goodbye(world), R2),
+            레코드(foo, T1, R1),
+            레코드(foo, T2, R2).
 
-        test_erase(R) :-
-            erase(R).
+        테스트_지우기(R) :-
+            지우기(R).
 
-        test_after_erase(T, R) :-
-            recorded(foo, T, R).
+        테스트_지우기_다음(T, R) :-
+            레코드(foo, T, R).
         """
         self.create_test_file("record_family.pl", content)
 
         commands = [
             "[record_family].",
-            "test_recorda(T1, T2, R1, R2).",
-            "test_erase(R1).",
-            "test_after_erase(T, R).",
+            "테스트_기록(T1, T2, R1, R2).",
+            "테스트_지우기(R1).",
+            "테스트_지우기_다음(T, R).",
         ]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)

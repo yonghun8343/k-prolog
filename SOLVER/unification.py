@@ -1,7 +1,7 @@
 from typing import Dict, List, Tuple
 
-from PARSER.ast import Struct, Term, Variable
 from err import ErrUnification
+from PARSER.ast import Struct, Term, Variable
 
 
 def extract_variable(vars: List[str], unif: Dict[str, Term]) -> Dict[str, Term]:

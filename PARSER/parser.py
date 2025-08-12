@@ -9,7 +9,6 @@ from err import (
     ErrProlog,
     ErrUnexpected,
     ErrUnknownPredicate,
-    handle_error,
 )
 from PARSER.ast import Struct, Term, Variable
 from PARSER.Data.list import PrologList
@@ -384,7 +383,6 @@ def parse_struct(s: str) -> Term:
             except ErrProlog:
                 # If arithmetic parsing fails, continue with normal struct parsing
                 break
-    # m = re.match(r"^([a-z0-9][a-zA-Z0-9_]*)\s*\((.*)\)$", s)
     m = re.match(r"^([a-z0-9가-힣][a-zA-Z0-9가-힣_]*)\s*\((.*)\)$", s)
     if (
         s.startswith("\=")
@@ -490,36 +488,44 @@ def parse_struct(s: str) -> Term:
                 result = parse_arithmetic_expression(s)
                 return result
             except (ErrProlog, Exception) as e:
-                for op in ['-', '+', '*', '/']:
+                for op in ["-", "+", "*", "/"]:
                     if op in s:
                         paren_depth = 0
                         op_pos = -1
                         for i, char in enumerate(s):
-                            if char == '(':
+                            if char == "(":
                                 paren_depth += 1
-                            elif char == ')':
+                            elif char == ")":
                                 paren_depth -= 1
                             elif char == op and paren_depth == 0:
                                 op_pos = i
                                 break
-                        
+
                         if op_pos > 0:
                             left_part = s[:op_pos].strip()
-                            right_part = s[op_pos + 1:].strip()
-                            
+                            right_part = s[op_pos + 1 :].strip()
+
                             try:
-                                left_term = parse_term(left_part) if left_part else None
-                                right_term = parse_term(right_part) if right_part else None
-                                
+                                left_term = (
+                                    parse_term(left_part) if left_part else None
+                                )
+                                right_term = (
+                                    parse_term(right_part)
+                                    if right_part
+                                    else None
+                                )
+
                                 if left_term and right_term:
-                                    result = Struct(op, 2, [left_term, right_term])
+                                    result = Struct(
+                                        op, 2, [left_term, right_term]
+                                    )
                                     return result
                             except Exception as e:
                                 continue
                 pass
 
         if s[0].isupper() or s[0] == "_":
-            return Variable(s)  # TODO need variable checking
+            return Variable(s)
         else:
             result = Struct(s, 0, [])
             return result

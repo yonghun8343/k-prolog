@@ -1,5 +1,5 @@
 import itertools
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple
 
 from err import (
     ErrInfiniteGeneration,
