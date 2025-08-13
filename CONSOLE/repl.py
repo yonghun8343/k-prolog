@@ -1,5 +1,9 @@
 from typing import List, Tuple
 
+from PARSER.ast import Struct, Term
+from PARSER.parser import parse_string
+from SOLVER.solver import solve
+from UTIL.debug import DebugState
 from UTIL.err import (
     AssertException,
     ErrFileNotFound,
@@ -11,10 +15,6 @@ from UTIL.err import (
     ErrUnknownPredicate,
     handle_error,
 )
-from PARSER.ast import Struct, Term
-from PARSER.parser import parse_string
-from SOLVER.solver import solve
-from UTIL.debug import DebugState
 from UTIL.str_util import flatten_comma_structure, format_term, term_to_string
 
 
@@ -105,10 +105,8 @@ def parse_command(command: str) -> Command:
         return Query(command)
 
 
-def parse_file_multiline(
-    filepath: str, debug_state
-) -> Tuple[List[List[Term]], List]:
-    with open(filepath, "r") as f:
+def parse_file_multiline(filepath: str, debug_state) -> Tuple[List[List[Term]], List]:
+    with open(filepath, "r", encoding="utf-8") as f:
         content = f.read()
     pending_goals = []
     statements = []
@@ -151,9 +149,7 @@ def parse_file_multiline(
                         )
                     ):
                         if len(goals[0][0].params) != 1:
-                            raise ErrUnknownPredicate(
-                                "", len(goals[0][0].params)
-                            )
+                            raise ErrUnknownPredicate("", len(goals[0][0].params))
                         init_goal = goals[0][0].params[0]
                         pending_goals.append(init_goal)
                     else:
@@ -187,11 +183,7 @@ def execute_pending_initializations(
 ):
     for goal in pending_goals:
         try:
-            if (
-                isinstance(goal, Struct)
-                and goal.name == ","
-                and goal.arity == 2
-            ):
+            if isinstance(goal, Struct) and goal.name == "," and goal.arity == 2:
                 flattened_goals = flatten_comma_structure(goal)
 
                 # execute all goals as a sequence
@@ -278,7 +270,7 @@ def execute(program: List[List[Term]], input_file: str) -> None:
         elif isinstance(cmd, Listing):
             if current_file:
                 try:
-                    with open(current_file, "r") as f:
+                    with open(current_file, "r", encoding="utf-8") as f:
                         for line in f:
                             if (cmd.predicate_name == "none") or (
                                 cmd.predicate_name in line

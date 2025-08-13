@@ -17,7 +17,7 @@ class TestKProlog(unittest.TestCase):
 
     def create_test_file(self, filename, content):
         filepath = os.path.join(self.test_dir, filename)
-        with open(filepath, "w") as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(content)
         return filepath
 
@@ -34,9 +34,7 @@ class TestKProlog(unittest.TestCase):
         # send commands
         input_text = "\n".join(commands) + "\n종료.\n"
         try:
-            stdout, stderr = process.communicate(
-                input=input_text, timeout=timeout
-            )
+            stdout, stderr = process.communicate(input=input_text, timeout=timeout)
             return stdout, stderr, process.returncode
         except subprocess.TimeoutExpired:
             process.kill()
@@ -120,12 +118,8 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn(
-            "참", stdout
-        )  # Should have multiple 참 for successful matches
-        self.assertIn(
-            "거짓", stdout
-        )  # Should have 거짓 for non-existent element
+        self.assertIn("참", stdout)  # Should have multiple 참 for successful matches
+        self.assertIn("거짓", stdout)  # Should have 거짓 for non-existent element
         self.assertIn("_엑스 = 1", stdout)  # First solution
         self.assertIn("_엑스 = 2", stdout)  # Second solution
         self.assertIn("_엑스 = 3", stdout)  # Third solution
@@ -145,15 +139,9 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn(
-            "참", stdout
-        )  # Should have multiple 참 for successful sorts
-        self.assertIn(
-            "거짓", stdout
-        )  # Should have 거짓 for wrong expected result
-        self.assertIn(
-            "_결과 = [1, 3, 4, 5]", stdout
-        )  # Sorted with duplicates removed
+        self.assertIn("참", stdout)  # Should have multiple 참 for successful sorts
+        self.assertIn("거짓", stdout)  # Should have 거짓 for wrong expected result
+        self.assertIn("_결과 = [1, 3, 4, 5]", stdout)  # Sorted with duplicates removed
         self.assertIn("_결과2 = [1, 2, 3]", stdout)  # Already sorted list
         self.assertIn("_결과3 = [1, 2, 3]", stdout)  # Reverse order sorted
         self.assertIn("_결과4 = []", stdout)  # Empty list result
@@ -176,12 +164,8 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn(
-            "참", stdout
-        )  # Should have multiple 참 for successful keysorting
-        self.assertIn(
-            "거짓", stdout
-        )  # Should have 거짓 for wrong expected order
+        self.assertIn("참", stdout)  # Should have multiple 참 for successful keysorting
+        self.assertIn("거짓", stdout)  # Should have 거짓 for wrong expected order
         self.assertIn("_결과 = [1-b, 2-c, 3-a]", stdout)  # Sorted by keys
         self.assertIn(
             "_결과2 = [1-x, 1-y, 2-z]", stdout
@@ -209,23 +193,15 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn(
-            "참", stdout
-        )  # Should have multiple 참 for successful flattening
+        self.assertIn("참", stdout)  # Should have multiple 참 for successful flattening
         self.assertIn(
             "거짓", stdout
         )  # Should have 거짓 for wrong verification and variable first param
-        self.assertIn(
-            "_결과 = [1, 2, 3, 4, 5]", stdout
-        )  # Nested lists flattened
-        self.assertIn(
-            "_결과2 = [1, 2, 3, 4]", stdout
-        )  # Complex nesting flattened
+        self.assertIn("_결과 = [1, 2, 3, 4, 5]", stdout)  # Nested lists flattened
+        self.assertIn("_결과2 = [1, 2, 3, 4]", stdout)  # Complex nesting flattened
         self.assertIn("_결과3 = [a, b, c, d, e]", stdout)  # Atoms flattened
         self.assertIn("_결과4 = []", stdout)  # Empty list remains empty
-        self.assertIn(
-            "_결과5 = [1, 2, 3]", stdout
-        )  # Already flat list unchanged
+        self.assertIn("_결과5 = [1, 2, 3]", stdout)  # Already flat list unchanged
         self.assertIn("_결과6 = [1, 2, 3]", stdout)  # Empty sublists removed
         self.assertIn("_와이 = [_엑스]", stdout)  # Special case: both variables
 
@@ -247,8 +223,12 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("참", stdout)  # Should have multiple 참 for successful between checks
-        self.assertIn("거짓", stdout)  # Should have 거짓 for out of range and invalid range
+        self.assertIn(
+            "참", stdout
+        )  # Should have multiple 참 for successful between checks
+        self.assertIn(
+            "거짓", stdout
+        )  # Should have 거짓 for out of range and invalid range
         self.assertIn("_엑스 = 1", stdout)  # First solution for between(1, 3, X)
         self.assertIn("_엑스 = 2", stdout)  # Second solution for between(1, 3, X)
         self.assertIn("_엑스 = 3", stdout)  # Third solution for between(1, 3, X)
@@ -278,7 +258,9 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("참", stdout)  # Should have multiple 참 for successful checks
         self.assertIn("거짓", stdout)  # Should have 거짓 for failed checks
         self.assertIn("_부분집합 = []", stdout)  # Variable subset generates empty list
-        self.assertIn("_집합 = [1, 2|", stdout)  # Variable set unifies with subset with tail
+        self.assertIn(
+            "_집합 = [1, 2|", stdout
+        )  # Variable set unifies with subset with tail
 
     def test_select(self):
         commands = [
@@ -304,12 +286,22 @@ class TestKProlog(unittest.TestCase):
         self.assertIn("거짓", stdout)  # Should have 거짓 for failed selections
         self.assertIn("_나머지1 = [1, 3]", stdout)  # Single occurrence removal
         self.assertIn("_나머지2 = [1, 3, 2, 4]", stdout)  # First occurrence removal
-        self.assertIn("_나머지2 = [1, 2, 3, 4]", stdout)  # Second occurrence removal  
-        self.assertIn("_나머지3 = [1, 3, 2, 4, 2]", stdout)  # First of three occurrences
-        self.assertIn("_나머지3 = [1, 2, 3, 4, 2]", stdout)  # Second of three occurrences
-        self.assertIn("_나머지3 = [1, 2, 3, 2, 4]", stdout)  # Third of three occurrences
-        self.assertIn("_나머지4 = []", stdout)  # Single element removal leaves empty list
-        self.assertIn("_나머지6 = [1, 1]", stdout)  # Remove first of three identical elements
+        self.assertIn("_나머지2 = [1, 2, 3, 4]", stdout)  # Second occurrence removal
+        self.assertIn(
+            "_나머지3 = [1, 3, 2, 4, 2]", stdout
+        )  # First of three occurrences
+        self.assertIn(
+            "_나머지3 = [1, 2, 3, 4, 2]", stdout
+        )  # Second of three occurrences
+        self.assertIn(
+            "_나머지3 = [1, 2, 3, 2, 4]", stdout
+        )  # Third of three occurrences
+        self.assertIn(
+            "_나머지4 = []", stdout
+        )  # Single element removal leaves empty list
+        self.assertIn(
+            "_나머지6 = [1, 1]", stdout
+        )  # Remove first of three identical elements
 
 
 if __name__ == "__main__":

@@ -1,19 +1,6 @@
 # coding: utf-8
 from typing import Dict, List, Tuple
 
-from UTIL.err import (
-    AssertException,
-    ErrArithmetic,
-    ErrDivisionByZero,
-    ErrNotNumber,
-    ErrParsing,
-    ErrProlog,
-    ErrType,
-    ErrUninstantiated,
-    ErrUnknownOperator,
-    ErrUnknownPredicate,
-    handle_error,
-)
 from PARSER.ast import Struct, Term, Variable
 from PARSER.Data.list import (
     handle_atom_chars,
@@ -33,6 +20,19 @@ from PARSER.Data.list import (
     handle_subtract,
 )
 from PARSER.parser import parse_struct
+from UTIL.err import (
+    AssertException,
+    ErrArithmetic,
+    ErrDivisionByZero,
+    ErrNotNumber,
+    ErrParsing,
+    ErrProlog,
+    ErrType,
+    ErrUninstantiated,
+    ErrUnknownOperator,
+    ErrUnknownPredicate,
+    handle_error,
+)
 from UTIL.str_util import struct_to_infix
 
 from .unification import extract_variable, match_params, substitute_term
@@ -568,7 +568,7 @@ def handle_char_code(
             return success, rest_goals, [new_unif] if success else []
 
         except (ValueError, OverflowError):
-            raise ErrType(code_param.name, "정수")
+            raise ErrType(code_param.name, "정수")  # noqa: B904
 
     return False, rest_goals, []
 

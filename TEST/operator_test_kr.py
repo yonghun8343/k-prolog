@@ -17,7 +17,7 @@ class TestKProlog(unittest.TestCase):
 
     def create_test_file(self, filename, content):
         filepath = os.path.join(self.test_dir, filename)
-        with open(filepath, "w") as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(content)
         return filepath
 
@@ -34,9 +34,7 @@ class TestKProlog(unittest.TestCase):
         # send commands
         input_text = "\n".join(commands) + "\n종료."
         try:
-            stdout, stderr = process.communicate(
-                input=input_text, timeout=timeout
-            )
+            stdout, stderr = process.communicate(input=input_text, timeout=timeout)
             return stdout, stderr, process.returncode
         except subprocess.TimeoutExpired:
             process.kill()
@@ -397,19 +395,13 @@ class TestKProlog(unittest.TestCase):
             "참", stdout
         )  # Should have multiple 참 for successful conversions
         self.assertIn("거짓", stdout)  # Should have 거짓 for wrong verification
-        self.assertIn(
-            "_문자들 = ['a', 'b', 'c']", stdout
-        )  # Characters for 'abc'
-        self.assertIn(
-            "_숫자들 = ['1', '2', '3']", stdout
-        )  # Characters for '123'
+        self.assertIn("_문자들 = ['a', 'b', 'c']", stdout)  # Characters for 'abc'
+        self.assertIn("_숫자들 = ['1', '2', '3']", stdout)  # Characters for '123'
         self.assertIn(
             "_헬로 = ['h', 'e', 'l', 'l', 'o']", stdout
         )  # Characters for 'hello'
         self.assertIn("_빈문자열 = []", stdout)  # Empty list for empty atom
-        self.assertIn(
-            "_한글 = ['안', '녕']", stdout
-        )  # Characters for Korean '안녕'
+        self.assertIn("_한글 = ['안', '녕']", stdout)  # Characters for Korean '안녕'
         self.assertIn("_원자 = abc", stdout)  # Atom from chars ['a', 'b', 'c']
         self.assertIn("_원자2 = 123", stdout)  # Atom from chars ['1', '2', '3']
         self.assertIn("_원자3 = ''", stdout)  # Empty atom from empty list
@@ -442,9 +434,7 @@ class TestKProlog(unittest.TestCase):
         # Check that recording succeeded and references returned
         self.assertIn("T1 = hello(world)", stdout)
         self.assertIn("T2 = goodbye(world)", stdout)
-        self.assertIn(
-            "R1 =", stdout
-        )  # some opaque reference struct, e.g. $ref(...)
+        self.assertIn("R1 =", stdout)  # some opaque reference struct, e.g. $ref(...)
         self.assertIn("R2 =", stdout)
 
 

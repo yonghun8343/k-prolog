@@ -34,7 +34,7 @@ class TestKProlog(unittest.TestCase):
 
     def create_test_file(self, filename, content):
         filepath = os.path.join(self.test_dir, filename)
-        with open(filepath, "w") as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(content)
         return filepath
 
@@ -190,7 +190,7 @@ class TestKProlog(unittest.TestCase):
 
         # Modify the file
         content2 = "test_fact(new)."
-        with open(filepath, "w") as f:
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(content2)
 
         commands2 = [
