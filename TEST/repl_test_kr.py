@@ -68,7 +68,7 @@ class TestKProlog(unittest.TestCase):
                     좋아함(mary, pizza).
                     좋아함(john, pasta)."""
 
-        self.create_test_file("사실.pl", content)
+        self.create_test_file("사실.kpl", content)
 
         commands = [
             "[사실].",
@@ -82,7 +82,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("사실.pl에서 적재했습니다", stdout)
+        self.assertIn("사실.kpl에서 적재했습니다", stdout)
         self.assertIn("참", stdout)
         self.assertIn("거짓", stdout)
         self.assertIn("_X = mary", stdout)
@@ -93,7 +93,7 @@ class TestKProlog(unittest.TestCase):
         content = """팩토리얼(0, 1).
                     팩토리얼(_N, _결과) :- _N > 0, _N1 := _N - 1, 팩토리얼(_N1, _서브결과), _결과 := _N * _서브결과."""
 
-        self.create_test_file("팩토리얼.pl", content)
+        self.create_test_file("팩토리얼.kpl", content)
 
         commands = [
             "[팩토리얼].",
@@ -104,7 +104,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("팩토리얼.pl에서 적재했습니다", stdout)
+        self.assertIn("팩토리얼.kpl에서 적재했습니다", stdout)
         self.assertIn("_X = 120", stdout)
         self.assertIn("_Y = 1", stdout)
         self.assertIn("_Z = 6", stdout)
@@ -113,7 +113,7 @@ class TestKProlog(unittest.TestCase):
         content = """합집(0, 0).
                     합집(_N, _결과) :- _N > 0, _N1 := _N - 1, 합집(_N1, _서브결과), _결과 := _N + _서브결과."""
 
-        self.create_test_file("합집.pl", content)
+        self.create_test_file("합집.kpl", content)
 
         commands = [
             "[합집].",
@@ -124,7 +124,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("합집.pl에서 적재했습니다", stdout)
+        self.assertIn("합집.kpl에서 적재했습니다", stdout)
         self.assertIn("_X = 15", stdout)
         self.assertIn("_Y = 6", stdout)
         self.assertIn("_Z = 0", stdout)
@@ -205,7 +205,7 @@ class TestKProlog(unittest.TestCase):
                      엄마(_X) :- 부모(_아무, _X), 여자(_X).
                      """
 
-        self.create_test_file("논리곱.pl", content)
+        self.create_test_file("논리곱.kpl", content)
 
         commands = [
             "[논리곱].",
@@ -216,7 +216,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("논리곱.pl에서 적재했습니다", stdout)
+        self.assertIn("논리곱.kpl에서 적재했습니다", stdout)
         self.assertIn("_X = 매리", stdout)
         self.assertIn("_X = 쑤", stdout)
 
@@ -227,7 +227,7 @@ class TestKProlog(unittest.TestCase):
                      강의(python).
                      흥미로운(_X) :- 언어(_X); 강의(_X)."""
 
-        self.create_test_file("논리합.pl", content)
+        self.create_test_file("논리합.kpl", content)
 
         commands = [
             "[논리합].",
@@ -239,7 +239,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("논리합.pl에서 적재했습니다", stdout)
+        self.assertIn("논리합.kpl에서 적재했습니다", stdout)
         self.assertIn("_X = prolog", stdout)
         self.assertIn("_X = c", stdout)
         self.assertIn("_X = python", stdout)
@@ -247,7 +247,7 @@ class TestKProlog(unittest.TestCase):
     def test_make_reload(self):
         # Create initial file
         content1 = "테스트_사실(원본)."
-        filepath = self.create_test_file("재적재_테스트.pl", content1)
+        filepath = self.create_test_file("재적재_테스트.kpl", content1)
 
         commands = [
             "[재적재_테스트].",
@@ -278,7 +278,7 @@ class TestKProlog(unittest.TestCase):
                     좋아함(john, pasta).
                     좋아함(john, salad)."""
 
-        self.create_test_file("다중해.pl", content)
+        self.create_test_file("다중해.kpl", content)
 
         commands = [
             "[다중해].",
@@ -289,13 +289,13 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("다중해.pl에서 적재했습니다", stdout)
+        self.assertIn("다중해.kpl에서 적재했습니다", stdout)
         self.assertIn("_X = pizza", stdout)
         self.assertIn("_X = pasta", stdout)
 
     def test_read_write(self):
         content = """안녕 :- read(_X), 쓰기(_X)."""
-        self.create_test_file("내용.pl", content)
+        self.create_test_file("내용.kpl", content)
 
         commands = [
             "[내용].",
@@ -309,7 +309,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("내용.pl에서 적재했습니다", stdout)
+        self.assertIn("내용.kpl에서 적재했습니다", stdout)
         self.assertIn("안녕", stdout)
         self.assertIn("거짓", stdout)
         self.assertIn("2 + 3", stdout)
@@ -347,7 +347,7 @@ class TestKProlog(unittest.TestCase):
 
     def test_errsyntax(self):
         content = """출력 :- 쓰기(안녕)"""
-        self.create_test_file("오류.pl", content)
+        self.create_test_file("오류.kpl", content)
 
         commands = [
             "[오류].",
@@ -382,7 +382,7 @@ class TestKProlog(unittest.TestCase):
         self.assertRaises(ErrNotNumber)
 
     def test_errrepl(self):
-        commands = ["목록(자식.pl.", "[무작위].", "쓰기(안녕, 2)."]
+        commands = ["목록(자식.kpl.", "[무작위].", "쓰기(안녕, 2)."]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
@@ -409,7 +409,7 @@ class TestKProlog(unittest.TestCase):
         content = """father(alan, jim).
                      father(alan, carry).
                      father(alan, mary)."""
-        self.create_test_file("multiple.pl", content)
+        self.create_test_file("multiple.kpl", content)
 
         commands = [
             "[multiple].",
@@ -418,7 +418,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("multiple.pl에서 적재했습니다", stdout)
+        self.assertIn("multiple.kpl에서 적재했습니다", stdout)
         self.assertIn("Children = [jim, carry, mary]", stdout)
 
     def test_findall_compound_goals(self):
@@ -442,7 +442,7 @@ class TestKProlog(unittest.TestCase):
         content = """:- 초기화(시스템_시작).
                     시스템_시작 :- 쓰기('시스템이 초기화되었습니다'), nl.
                     메인_목표."""
-        self.create_test_file("초기화.pl", content)
+        self.create_test_file("초기화.kpl", content)
         commands = [
             "[초기화].",
             "메인_목표.",  # Some other goal to test normal execution
@@ -455,7 +455,7 @@ class TestKProlog(unittest.TestCase):
 
     def test_initialization_compound_goal(self):
         content = """:- 초기화((쓰기('시작'), nl, 쓰기('끝'), nl))."""
-        self.create_test_file("초기화.pl", content)
+        self.create_test_file("초기화.kpl", content)
 
         commands = [
             "[초기화].",
@@ -468,7 +468,7 @@ class TestKProlog(unittest.TestCase):
 
     def test_initialization_with_arithmetic(self):
         content = """:- 초기화((_X := 2 + 3, 쓰기(_X)))."""
-        self.create_test_file("초기화.pl", content)
+        self.create_test_file("초기화.kpl", content)
         commands = [
             "[초기화].",
         ]
@@ -493,7 +493,7 @@ class TestKProlog(unittest.TestCase):
         숫자(3).
         """
 
-        self.create_test_file("집합.pl", content)
+        self.create_test_file("집합.kpl", content)
 
         commands = [
             "[집합].",
@@ -509,7 +509,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("집합.pl에서 적재했습니다", stdout)
+        self.assertIn("집합.kpl에서 적재했습니다", stdout)
         self.assertIn("_결과1 = [pasta, pizza]", stdout)
         self.assertIn("_결과2 = [1, 2, 3]", stdout)
         self.assertIn("거짓", stdout)
@@ -528,7 +528,7 @@ class TestKProlog(unittest.TestCase):
         동물(개).
         """
 
-        self.create_test_file("비교.pl", content)
+        self.create_test_file("비교.kpl", content)
 
         commands = [
             "[비교].",
@@ -545,7 +545,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("비교.pl에서 적재했습니다", stdout)
+        self.assertIn("비교.kpl에서 적재했습니다", stdout)
 
         self.assertIn("_모든색깔 = [빨강, 파랑, 빨강, 초록, 파랑]", stdout)
 
@@ -566,7 +566,7 @@ class TestKProlog(unittest.TestCase):
                     fruit(cherries).
                 """
 
-        self.create_test_file("forall_success.pl", content)
+        self.create_test_file("forall_success.kpl", content)
 
         commands = ["[forall_success].", "forall(likes(alice, X), fruit(X))."]
 
@@ -580,7 +580,7 @@ class TestKProlog(unittest.TestCase):
                     fruit(apples).
                 """
 
-        self.create_test_file("forall_failure.pl", content)
+        self.create_test_file("forall_failure.kpl", content)
 
         commands = ["[forall_failure].", "forall(likes(bob, X), fruit(X))."]
 
@@ -593,7 +593,7 @@ class TestKProlog(unittest.TestCase):
                     fruit(bananas).
                 """  # No likes(claire, _) facts
 
-        self.create_test_file("forall_vacuous.pl", content)
+        self.create_test_file("forall_vacuous.kpl", content)
 
         commands = ["[forall_vacuous].", "forall(likes(claire, X), fruit(X))."]
 
@@ -608,7 +608,7 @@ class TestKProlog(unittest.TestCase):
                     human(bob).
                 """
 
-        self.create_test_file("forall_nested.pl", content)
+        self.create_test_file("forall_nested.kpl", content)
 
         commands = ["[forall_nested].", "forall(parent(john, X), human(X))."]
 
@@ -634,7 +634,7 @@ class TestKProlog(unittest.TestCase):
             add_one(X, Y) :- Y is X + 1.
         """
 
-        self.create_test_file("maplist_add_one.pl", content)
+        self.create_test_file("maplist_add_one.kpl", content)
 
         commands = [
             "[maplist_add_one].",
@@ -656,9 +656,9 @@ class TestKProlog(unittest.TestCase):
             차이(_X, _Y, _Z) :- _Z := _X - _Y.
             합(_X, _Y, _Z) :- _Z := _X + _Y.
         """
-        
-        self.create_test_file("맵리스트테스트.pl", content)
-        
+
+        self.create_test_file("맵리스트테스트.kpl", content)
+
         commands = [
             "[맵리스트테스트].",
             # Test 1: Basic transformation with unary predicate
@@ -689,20 +689,28 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("맵리스트테스트.pl에서 적재했습니다", stdout)
+        self.assertIn("맵리스트테스트.kpl에서 적재했습니다", stdout)
         # Test basic transformation results
         self.assertIn("_결과1 = [2, 3, 4]", stdout)  # [1,2,3] + 1 = [2,3,4]
         self.assertIn("_결과2 = [4, 6, 8]", stdout)  # [2,3,4] * 2 = [4,6,8]
         # Test verification results
-        self.assertIn("참", stdout)  # Should have multiple 참 for successful verifications
-        self.assertIn("거짓", stdout)  # Should have 거짓 for failed verifications
+        self.assertIn(
+            "참", stdout
+        )  # Should have multiple 참 for successful verifications
+        self.assertIn(
+            "거짓", stdout
+        )  # Should have 거짓 for failed verifications
         # Test variable binding
         self.assertIn("_A = 1", stdout)
-        self.assertIn("_B = 2", stdout) 
+        self.assertIn("_B = 2", stdout)
         self.assertIn("_C = 3", stdout)
         # Test transformation results
-        self.assertIn("_제곱결과 = [1, 4, 9, 16]", stdout)  # squares of [1,2,3,4]
-        self.assertIn("_차이결과 = [3, 3, 2]", stdout)  # [5,4,3] - [2,1,1] = [3,3,2]
+        self.assertIn(
+            "_제곱결과 = [1, 4, 9, 16]", stdout
+        )  # squares of [1,2,3,4]
+        self.assertIn(
+            "_차이결과 = [3, 3, 2]", stdout
+        )  # [5,4,3] - [2,1,1] = [3,3,2]
 
 
 if __name__ == "__main__":

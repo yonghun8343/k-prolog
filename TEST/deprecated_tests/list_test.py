@@ -34,7 +34,9 @@ class TestKProlog(unittest.TestCase):
         # send commands
         input_text = "\n".join(commands) + "\nhalt.\n"
         try:
-            stdout, stderr = process.communicate(input=input_text, timeout=timeout)
+            stdout, stderr = process.communicate(
+                input=input_text, timeout=timeout
+            )
             return stdout, stderr, process.returncode
         except subprocess.TimeoutExpired:
             process.kill()
@@ -45,7 +47,7 @@ class TestKProlog(unittest.TestCase):
         content = """sum([], 0).
                      sum([H|T], X) :- sum(T,Y), X is H + Y."""
 
-        self.create_test_file("list.pl", content)
+        self.create_test_file("list.kpl", content)
 
         commands = [
             "[list].",

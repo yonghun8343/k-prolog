@@ -1,2 +1,0 @@
-language(prolog).
-language(python).

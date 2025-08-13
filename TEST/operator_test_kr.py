@@ -34,7 +34,9 @@ class TestKProlog(unittest.TestCase):
         # send commands
         input_text = "\n".join(commands) + "\n종료."
         try:
-            stdout, stderr = process.communicate(input=input_text, timeout=timeout)
+            stdout, stderr = process.communicate(
+                input=input_text, timeout=timeout
+            )
             return stdout, stderr, process.returncode
         except subprocess.TimeoutExpired:
             process.kill()
@@ -128,7 +130,7 @@ class TestKProlog(unittest.TestCase):
         테스트_매치(_, _).
         """
 
-        self.create_test_file("익명.pl", content)
+        self.create_test_file("익명.kpl", content)
         commands = [
             "[익명].",
             "테스트_익명(_엘, 5).",
@@ -140,7 +142,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("익명.pl에서 적재했습니다", stdout)
+        self.assertIn("익명.kpl에서 적재했습니다", stdout)
 
         self.assertIn("_엘 = 3", stdout)
         self.assertIn("_에이 = 3", stdout)
@@ -154,7 +156,7 @@ class TestKProlog(unittest.TestCase):
         파랑(_엑스) :- not(빨강(_엑스)).
         """
 
-        self.create_test_file("부정.pl", content)
+        self.create_test_file("부정.kpl", content)
 
         commands = [
             "[부정].",
@@ -166,7 +168,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("부정.pl에서 적재했습니다", stdout)
+        self.assertIn("부정.kpl에서 적재했습니다", stdout)
         self.assertIn("거짓", stdout)
         self.assertIn("거짓", stdout)
         self.assertIn("참", stdout)
@@ -187,7 +189,7 @@ class TestKProlog(unittest.TestCase):
         범위(_엠,_엔,[_엠|_엔에스]) :- _엠 < _엔, _엠1 := _엠+1, 범위(_엠1,_엔,_엔에스).
         """
 
-        self.create_test_file("엔퀸.pl", content)
+        self.create_test_file("엔퀸.kpl", content)
 
         commands = [
             "[엔퀸].",
@@ -203,7 +205,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("엔퀸.pl에서 적재했습니다", stdout)
+        self.assertIn("엔퀸.kpl에서 적재했습니다", stdout)
         self.assertIn("_큐에스 = [2, 4, 1, 3]", stdout)
         self.assertIn("_큐에스 = [3, 1, 4, 2]", stdout)
         # self.assertIn("_큐에스 = [2, 4, 6, 1, 3, 5]", stdout)
@@ -245,7 +247,7 @@ class TestKProlog(unittest.TestCase):
                 멤버_컷(_엑스, [_엑스|_]) :- !.
                 멤버_컷(_엑스, [_|_꼬리]) :- 멤버_컷(_엑스, _꼬리)."""
 
-        self.create_test_file("컷_테스트.pl", content)
+        self.create_test_file("컷_테스트.kpl", content)
 
         # Should only give one answer
         commands1 = [
@@ -281,7 +283,7 @@ class TestKProlog(unittest.TestCase):
                     알(1).
                     에스(3)."""
 
-        self.create_test_file("백트랙_테스트.pl", content)
+        self.create_test_file("백트랙_테스트.kpl", content)
 
         commands = [
             "[백트랙_테스트].",
@@ -303,7 +305,7 @@ class TestKProlog(unittest.TestCase):
         음수인지(_엑스) :- _엑스 < 0 -> 쓰기('음수입니다').
         """
 
-        self.create_test_file("조건부.pl", content)
+        self.create_test_file("조건부.kpl", content)
 
         commands = [
             "[조건부].",
@@ -315,7 +317,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("조건부.pl에서 적재했습니다", stdout)
+        self.assertIn("조건부.kpl에서 적재했습니다", stdout)
         self.assertIn("양수입니다", stdout)
         self.assertIn("음수입니다", stdout)
         self.assertIn("참", stdout)  # For successful cases
@@ -327,7 +329,7 @@ class TestKProlog(unittest.TestCase):
         최대값(_에이, _비, _최대) :- (_에이 >= _비 -> _최대 = _에이 ; _최대 = _비).
         """
 
-        self.create_test_file("조건문.pl", content)
+        self.create_test_file("조건문.kpl", content)
 
         commands = [
             "[조건문].",
@@ -339,7 +341,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("조건문.pl에서 적재했습니다", stdout)
+        self.assertIn("조건문.kpl에서 적재했습니다", stdout)
         self.assertIn("_결과1 = 5", stdout)
         self.assertIn("_결과2 = 3", stdout)
         self.assertIn("_최대1 = 7", stdout)
@@ -395,13 +397,19 @@ class TestKProlog(unittest.TestCase):
             "참", stdout
         )  # Should have multiple 참 for successful conversions
         self.assertIn("거짓", stdout)  # Should have 거짓 for wrong verification
-        self.assertIn("_문자들 = ['a', 'b', 'c']", stdout)  # Characters for 'abc'
-        self.assertIn("_숫자들 = ['1', '2', '3']", stdout)  # Characters for '123'
+        self.assertIn(
+            "_문자들 = ['a', 'b', 'c']", stdout
+        )  # Characters for 'abc'
+        self.assertIn(
+            "_숫자들 = ['1', '2', '3']", stdout
+        )  # Characters for '123'
         self.assertIn(
             "_헬로 = ['h', 'e', 'l', 'l', 'o']", stdout
         )  # Characters for 'hello'
         self.assertIn("_빈문자열 = []", stdout)  # Empty list for empty atom
-        self.assertIn("_한글 = ['안', '녕']", stdout)  # Characters for Korean '안녕'
+        self.assertIn(
+            "_한글 = ['안', '녕']", stdout
+        )  # Characters for Korean '안녕'
         self.assertIn("_원자 = abc", stdout)  # Atom from chars ['a', 'b', 'c']
         self.assertIn("_원자2 = 123", stdout)  # Atom from chars ['1', '2', '3']
         self.assertIn("_원자3 = ''", stdout)  # Empty atom from empty list
@@ -420,7 +428,7 @@ class TestKProlog(unittest.TestCase):
         테스트_지우기_다음(T, R) :-
             레코드(foo, T, R).
         """
-        self.create_test_file("record_family.pl", content)
+        self.create_test_file("record_family.kpl", content)
 
         commands = [
             "[record_family].",
@@ -434,7 +442,9 @@ class TestKProlog(unittest.TestCase):
         # Check that recording succeeded and references returned
         self.assertIn("T1 = hello(world)", stdout)
         self.assertIn("T2 = goodbye(world)", stdout)
-        self.assertIn("R1 =", stdout)  # some opaque reference struct, e.g. $ref(...)
+        self.assertIn(
+            "R1 =", stdout
+        )  # some opaque reference struct, e.g. $ref(...)
         self.assertIn("R2 =", stdout)
 
 

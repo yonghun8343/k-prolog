@@ -68,7 +68,7 @@ class TestKProlog(unittest.TestCase):
                     likes(mary, pizza).
                     likes(john, pasta)."""
 
-        self.create_test_file("facts.pl", content)
+        self.create_test_file("facts.kpl", content)
 
         commands = [
             "[facts].",
@@ -82,7 +82,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("loaded from facts.pl", stdout)
+        self.assertIn("loaded from facts.kpl", stdout)
         self.assertIn("True", stdout)
         self.assertIn("False", stdout)
         self.assertIn("X = mary", stdout)
@@ -93,7 +93,7 @@ class TestKProlog(unittest.TestCase):
         content = """factorial(0, 1).
                     factorial(N, Result) :- N > 0, N1 is N - 1, factorial(N1, SubResult), Result is N * SubResult."""
 
-        self.create_test_file("factorial.pl", content)
+        self.create_test_file("factorial.kpl", content)
 
         commands = [
             "[factorial].",
@@ -104,7 +104,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("loaded from factorial.pl", stdout)
+        self.assertIn("loaded from factorial.kpl", stdout)
         self.assertIn("X = 120", stdout)
         self.assertIn("Y = 1", stdout)
         self.assertIn("Z = 6", stdout)
@@ -113,7 +113,7 @@ class TestKProlog(unittest.TestCase):
         content = """sum_to(0, 0).
                     sum_to(N, Result) :- N > 0, N1 is N - 1, sum_to(N1, SubResult), Result is N + SubResult."""
 
-        self.create_test_file("sum.pl", content)
+        self.create_test_file("sum.kpl", content)
 
         commands = [
             "[sum].",
@@ -124,7 +124,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("loaded from sum.pl", stdout)
+        self.assertIn("loaded from sum.kpl", stdout)
         self.assertIn("X = 15", stdout)
         self.assertIn("Y = 6", stdout)
         self.assertIn("Z = 0", stdout)
@@ -137,7 +137,7 @@ class TestKProlog(unittest.TestCase):
                      mother(X) :- parent(Y, X), female(X).
                      """
 
-        self.create_test_file("conjunction.pl", content)
+        self.create_test_file("conjunction.kpl", content)
 
         commands = [
             "[conjunction].",
@@ -148,7 +148,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("loaded from conjunction.pl", stdout)
+        self.assertIn("loaded from conjunction.kpl", stdout)
         self.assertIn("X = mary", stdout)
         self.assertIn("X = sue", stdout)
 
@@ -159,7 +159,7 @@ class TestKProlog(unittest.TestCase):
                      lecture(python).
                      interesting(X) :- language(X); lecture(X)."""
 
-        self.create_test_file("disjunction.pl", content)
+        self.create_test_file("disjunction.kpl", content)
 
         commands = [
             "[disjunction].",
@@ -171,7 +171,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("loaded from disjunction.pl", stdout)
+        self.assertIn("loaded from disjunction.kpl", stdout)
         self.assertIn("X = prolog", stdout)
         self.assertIn("X = c", stdout)
         self.assertIn("X = python", stdout)
@@ -179,7 +179,7 @@ class TestKProlog(unittest.TestCase):
     def test_make_reload(self):
         # Create initial file
         content1 = "test_fact(original)."
-        filepath = self.create_test_file("reload_test.pl", content1)
+        filepath = self.create_test_file("reload_test.kpl", content1)
 
         commands = [
             "[reload_test].",
@@ -210,7 +210,7 @@ class TestKProlog(unittest.TestCase):
                     likes(john, pasta).
                     likes(john, salad)."""
 
-        self.create_test_file("multiple.pl", content)
+        self.create_test_file("multiple.kpl", content)
 
         commands = [
             "[multiple].",
@@ -221,13 +221,13 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("loaded from multiple.pl", stdout)
+        self.assertIn("loaded from multiple.kpl", stdout)
         self.assertIn("X = pizza", stdout)
         self.assertIn("X = pasta", stdout)
 
     def test_read_write(self):
         content = """hello :- read(X), write(X)."""
-        self.create_test_file("content.pl", content)
+        self.create_test_file("content.kpl", content)
 
         commands = [
             "[content].",
@@ -241,7 +241,7 @@ class TestKProlog(unittest.TestCase):
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
-        self.assertIn("loaded from content.pl", stdout)
+        self.assertIn("loaded from content.kpl", stdout)
         self.assertIn("hello", stdout)
         self.assertIn("False", stdout)
         self.assertIn("2 + 3", stdout)
@@ -278,7 +278,7 @@ class TestKProlog(unittest.TestCase):
 
     def test_errsyntax(self):
         content = """print :- write(hello)"""
-        self.create_test_file("faulty.pl", content)
+        self.create_test_file("faulty.kpl", content)
 
         commands = [
             "[faulty].",
@@ -313,7 +313,7 @@ class TestKProlog(unittest.TestCase):
         self.assertRaises(ErrNotNumber)
 
     def test_errrepl(self):
-        commands = ["listing(child.pl.", "[random].", "write(hello, 2)."]
+        commands = ["listing(child.kpl.", "[random].", "write(hello, 2)."]
 
         stdout, stderr, returncode = self.run_prolog_commands(commands)
 
@@ -357,7 +357,7 @@ class TestKProlog(unittest.TestCase):
         content = """:- initialization(start_system).
                     start_system :- write('System initialized'), nl.
                     main_goal."""
-        self.create_test_file("init.pl", content)
+        self.create_test_file("init.kpl", content)
         commands = [
             "[init].",
             "main_goal.",  # Some other goal to test normal execution
@@ -372,7 +372,7 @@ class TestKProlog(unittest.TestCase):
         content = (
             """:- initialization((write('Start'), nl, write('End'), nl))."""
         )
-        self.create_test_file("init.pl", content)
+        self.create_test_file("init.kpl", content)
 
         commands = [
             "[init].",
@@ -385,7 +385,7 @@ class TestKProlog(unittest.TestCase):
 
     def test_initialization_with_arithmetic(self):
         content = """:- initialization((X is 2 + 3, write(X)))."""
-        self.create_test_file("init.pl", content)
+        self.create_test_file("init.kpl", content)
         commands = [
             "[init].",
         ]

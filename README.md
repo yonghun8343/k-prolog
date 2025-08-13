@@ -77,7 +77,7 @@ k-prolog.exe filename.kpl
 
 ``` shell
 ?- [엔퀸].
-엔퀸.pl에서 적재했습니다
+엔퀸.kpl에서 적재했습니다
 ?- 메인.
 N-Queens 문제 해결기
 보드 크기를 입력하세요:
