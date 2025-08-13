@@ -1,0 +1,16 @@
+:- initialization(main).
+main :- read(X),
+        process_number(X, N),
+        write("Hello, "),
+        write(N),
+        write("."),
+        nl,
+        halt.
+
+% Handle arithmetic expressions like +(5) and -(5)
+process_number(+(N), N) :- !.
+process_number(-(N), Result) :- !, Result is 0 - N.
+% Handle regular numbers
+process_number(N, N) :- number(N), !.
+% Fallback - return as-is
+process_number(X, X).

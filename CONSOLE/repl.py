@@ -25,7 +25,7 @@ class Command:
 class Load(Command):
     def __init__(self, path: str):
         if "." not in path:
-            path += ".pl"
+            path += ".pl"  # TODO hard coded right now
         self.path = path
 
 
@@ -115,6 +115,9 @@ def parse_file_multiline(
     current_statement = ""
 
     i = 0
+    in_single_quote = False
+    in_double_quote = False
+
     while i < len(content):
         char = content[i]
         if char == "%":
@@ -124,7 +127,14 @@ def parse_file_multiline(
 
         current_statement += char
 
-        if char == ".":
+        # Track quote state
+        if char == "'" and not in_double_quote:
+            in_single_quote = not in_single_quote
+        elif char == '"' and not in_single_quote:
+            in_double_quote = not in_double_quote
+
+        # Only treat period as statement terminator if not inside quotes
+        if char == "." and not in_single_quote and not in_double_quote:
             statement = current_statement.strip()
             if statement:
                 statement = " ".join(statement.split())
@@ -213,9 +223,12 @@ def validate_clause_syntax(statement: str) -> None:
         raise ErrOperator(statement, False)
 
 
-def execute(program: List[List[Term]]) -> None:
+def execute(program: List[List[Term]], input_file: str) -> None:
     current_file = None
     debug_state = DebugState()
+    if input_file != "":
+        program, pending = parse_file_multiline(input_file, debug_state)
+        execute_pending_initializations(program, pending, debug_state)
     while True:
         try:
             if debug_state.trace_mode:

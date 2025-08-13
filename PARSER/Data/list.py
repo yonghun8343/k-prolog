@@ -876,3 +876,144 @@ def get_head_tail(term: Term) -> Tuple[Term, Term]:
     if is_list_cons(term):
         return term.params[0], term.params[1]
     raise ErrList()
+
+
+def handle_last(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 2 or goal.arity != 2:
+        raise ErrUnknownPredicate("last", len(goal.params))
+
+    list_term, element = goal.params
+    element = substitute_term(unif, element)
+    list_term = substitute_term(unif, list_term)
+
+    if not isinstance(list_term, Variable):
+        if is_empty_list(list_term):
+            return False, rest_goals, []
+
+        list_elements = extract_list(list_term)
+        if list_elements is None or len(list_elements) == 0:
+            return False, rest_goals, []
+
+        last_element = list_elements[-1]
+        success, new_unif = match_params([element], [last_element], unif)
+        return success, rest_goals, [new_unif] if success else []
+
+    elif not isinstance(element, Variable) and isinstance(list_term, Variable):
+        result_list = Struct(".", 2, [element, Struct("[]", 0, [])])
+        success, new_unif = match_params([list_term], [result_list], unif)
+        return success, rest_goals, [new_unif] if success else []
+
+    elif isinstance(element, Variable) and isinstance(list_term, Variable):
+        result_list = Struct(".", 2, [element, Struct("[]", 0, [])])
+        success, new_unif = match_params([list_term], [result_list], unif)
+        return success, rest_goals, [new_unif] if success else []
+
+    return False, rest_goals, []
+
+
+def handle_nth0(
+    goal: Struct, rest_goals: List[Term], unif: Dict[str, Term]
+) -> Tuple[bool, List[Term], List[Dict[str, Term]]]:
+    if len(goal.params) != 3 or goal.arity != 3:
+        raise ErrUnknownPredicate("nth0", len(goal.params))
+
+    index_term, list_term, element = goal.params
+    index_term = substitute_term(unif, index_term)
+    list_term = substitute_term(unif, list_term)
+    element = substitute_term(unif, element)
+
+    if not isinstance(index_term, Variable) and not isinstance(
+        list_term, Variable
+    ):
+        try:
+            index = int(index_term.name)
+        except (ValueError, AttributeError):
+            return False, rest_goals, []
+
+        if index < 0:
+            return False, rest_goals, []
+
+        list_elements = extract_list(list_term)
+        if list_elements is None:
+            return False, rest_goals, []
+
+        if index >= len(list_elements):
+            return False, rest_goals, []
+
+        target_element = list_elements[index]
+        success, new_unif = match_params([element], [target_element], unif)
+        return success, rest_goals, [new_unif] if success else []
+
+    if (
+        isinstance(index_term, Variable)
+        and not isinstance(list_term, Variable)
+        and not isinstance(element, Variable)
+    ):
+        list_elements = extract_list(list_term)
+        if list_elements is None:
+            return False, rest_goals, []
+
+        all_solutions = []
+        for i, list_elem in enumerate(list_elements):
+            success, elem_unif = match_params([element], [list_elem], unif)
+            if success:
+                index_struct = Struct(str(i), 0, [])
+                success, final_unif = match_params(
+                    [index_term], [index_struct], elem_unif
+                )
+                if success:
+                    all_solutions.append(final_unif)
+
+        return len(all_solutions) > 0, rest_goals, all_solutions
+
+    if (
+        not isinstance(index_term, Variable)
+        and isinstance(list_term, Variable)
+        and not isinstance(element, Variable)
+    ):
+        try:
+            index = int(index_term.name)
+        except (ValueError, AttributeError):
+            return False, rest_goals, []
+
+        if index < 0:
+            return False, rest_goals, []
+
+        list_elements = []
+        for i in range(index + 1):
+            if i == index:
+                list_elements.append(element)
+            else:
+                list_elements.append(Variable(f"_G{i}"))
+
+        result_list = PrologList(list_elements).to_struct()
+        success, new_unif = match_params([list_term], [result_list], unif)
+        return success, rest_goals, [new_unif] if success else []
+
+    if (
+        not isinstance(index_term, Variable)
+        and isinstance(list_term, Variable)
+        and isinstance(element, Variable)
+    ):
+        try:
+            index = int(index_term.name)
+        except (ValueError, AttributeError):
+            return False, rest_goals, []
+
+        if index < 0:
+            return False, rest_goals, []
+
+        list_elements = []
+        for i in range(index + 1):
+            if i == index:
+                list_elements.append(element)
+            else:
+                list_elements.append(Variable(f"_G{i}"))
+
+        result_list = PrologList(list_elements).to_struct()
+        success, new_unif = match_params([list_term], [result_list], unif)
+        return success, rest_goals, [new_unif] if success else []
+
+    return False, rest_goals, []

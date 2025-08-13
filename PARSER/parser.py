@@ -463,7 +463,6 @@ def parse_struct(s: str) -> Term:
             lists = [parse_struct(p.strip()) for p in parts[1:]]
 
             return Struct("maplist", len(parts), [predicate] + lists)
-
         elif (
             name == "writeln"
             or name == "write"
