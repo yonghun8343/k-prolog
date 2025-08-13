@@ -51,7 +51,9 @@ def handle_is(
         if isinstance(result, Variable):
             raise ErrUninstantiated(result.name, "산술 표현식")
 
-        result_term = Struct(str(int(result) if result.is_integer() else result), 0, [])
+        result_term = Struct(
+            str(int(result) if result.is_integer() else result), 0, []
+        )
 
         success, new_unif = match_params([left], [result_term], old_unif)
         return success, rest_goals, [new_unif] if success else []
@@ -446,7 +448,9 @@ def handle_atom_concat(
 
                 success1, temp_unif = match_params([l1], [l1_struct], unif)
                 if success1:
-                    success2, final_unif = match_params([l2], [l2_struct], temp_unif)
+                    success2, final_unif = match_params(
+                        [l2], [l2_struct], temp_unif
+                    )
                     if success2:
                         all_unifs.append(final_unif)
 
@@ -534,7 +538,9 @@ def handle_char_code(
     code_param = substitute_term(unif, code_param)
 
     if isinstance(char_param, Variable) and isinstance(code_param, Variable):
-        raise ErrUninstantiated(f"{char_param.name}, {code_param.name}", "문자코드")
+        raise ErrUninstantiated(
+            f"{char_param.name}, {code_param.name}", "문자코드"
+        )
 
     if not isinstance(char_param, Variable):
         if not (isinstance(char_param, Struct) and char_param.arity == 0):
@@ -542,7 +548,11 @@ def handle_char_code(
 
         char_str = char_param.name
 
-        if char_str.startswith("'") and char_str.endswith("'") and len(char_str) >= 2:
+        if (
+            char_str.startswith("'")
+            and char_str.endswith("'")
+            and len(char_str) >= 2
+        ):
             char_str = char_str[1:-1]
 
         if len(char_str) != 1:
