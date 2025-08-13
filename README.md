@@ -4,10 +4,41 @@
 K-Prolog: 한글 Prolog 인터프리터입니다
 
 ## 실행 방법
-Python 3.10 이상을 설치한 후 다음 명령을 수행합니다.
+<!-- Python 3.10 이상을 설치한 후 다음 명령을 수행합니다.
 ``` shell
-python main.py
+
+``` -->
+### Mac
+Mac 운영체제에서는 dist 폴더의 k-prolog 파일을 터미널에서 다음과 같이 실행합니다.  
+표준 Prolog 명령줄 인터페이스를 사용하려면, 다음 명령을 입력하세요:
+``` shell
+./k-prolog 
 ```
+시작할 때 K-Prolog 파일(.kpl)을 먼저 적재하려면, 다음과 같이 두 번째 인자로 파일 이름을 지정하세요:
+``` shell
+./k-prolog filename.kpl
+```
+### Linux
+Linux 운영체제에서는 dist 폴더의 k-prolog 파일을 터미널에서 다음과 같이 실행합니다.  
+표준 Prolog 명령줄 인터페이스를 사용하려면, 다음 명령을 입력하세요:
+``` shell
+./k-prolog 
+```
+시작할 때 K-Prolog 파일(.kpl)을 먼저 적재하려면, 다음과 같이 두 번째 인자로 파일 이름을 지정하세요:
+``` shell
+./k-prolog filename.kpl
+```
+### Windows
+Windows 운영체제에서는 dist 폴더의 k-prolog.exe 파일을 명령 프롬프트에서 다음과 같이 실행합니다. 
+표준 Prolog 명령줄 인터페이스를 사용하려면, 다음 명령을 입력하세요:
+```shell
+k-prolog.exe
+```
+시작할 때 K-Prolog 파일(.kpl)을 먼저 로드하려면, 다음과 같이 두 번째 인자로 파일 이름을 지정하세요:
+```shell
+k-prolog.exe filename.kpl
+```
+
 
 ## K-Prolog 코드 예제
 ``` shell
@@ -42,7 +73,7 @@ python main.py
     해답출력(_나머지, _다음번호).
 ```
 
-## 테스트 입력
+## 테스트 입력- 명령줄 인터페이스
 
 ``` shell
 ?- [엔퀸].
