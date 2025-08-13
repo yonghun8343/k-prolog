@@ -25,7 +25,7 @@ class Command:
 class Load(Command):
     def __init__(self, path: str):
         if "." not in path:
-            path += ".pl"  # TODO hard coded right now
+            path += ".kpl"  # TODO hard coded right now
         self.path = path
 
 
